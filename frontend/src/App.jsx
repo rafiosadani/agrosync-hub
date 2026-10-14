@@ -8,7 +8,10 @@ import SchemaMigration from './pages/SchemaMigration';
 import NetworkGuide from './pages/NetworkGuide';
 import { api } from './api';
 
+import { useToast } from './components/Toast';
+
 export default function App() {
+  const toast = useToast();
   const [currentTab, setCurrentTab] = useState('overview');
   const [systemHealth, setSystemHealth] = useState(null);
   const [metricsSummary, setMetricsSummary] = useState(null);
@@ -52,11 +55,12 @@ export default function App() {
 
   const handleTriggerSync = async () => {
     try {
+      toast.info('Sinkronisasi Dipicu', 'Memulai siklus sinkronisasi data DML on-demand...');
       await api.triggerSync();
-      // Segera refresh data
+      toast.success('Sinkronisasi Berjalan', 'Engine sinkronisasi sedang memproses tabel.');
       setTimeout(() => fetchDashboardData(true), 500);
     } catch (err) {
-      alert(`Gagal memicu sinkronisasi: ${err.message}`);
+      toast.error('Gagal Memicu Sinkronisasi', err.message);
     }
   };
 

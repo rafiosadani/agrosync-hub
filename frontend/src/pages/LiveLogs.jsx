@@ -14,8 +14,12 @@ import {
   Pause
 } from 'lucide-react';
 import { api } from '../api';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 
 export default function LiveLogs() {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [logs, setLogs] = useState([]);
   const [viewMode, setViewMode] = useState('terminal'); // 'terminal' | 'table'
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -52,9 +56,21 @@ export default function LiveLogs() {
   }, [autoRefresh, selectedCompany, selectedLevel, searchQuery]);
 
   const handleClear = async () => {
-    if (confirm("Apakah Anda yakin ingin mengosongkan riwayat log aktivitas?")) {
-      await api.clearLogs();
-      fetchLogs();
+    const isConfirmed = await confirm({
+      title: 'Kosongkan Riwayat Log',
+      description: 'Apakah Anda yakin ingin mengosongkan seluruh riwayat log aktivitas sistem? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Kosongkan Log',
+      variant: 'danger',
+    });
+
+    if (isConfirmed) {
+      try {
+        await api.clearLogs();
+        fetchLogs();
+        toast.success('Log Dibersihkan', 'Seluruh riwayat log aktivitas berhasil dikosongkan.');
+      } catch (err) {
+        toast.error('Gagal Mengosongkan Log', err.message);
+      }
     }
   };
 

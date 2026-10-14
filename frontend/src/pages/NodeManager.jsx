@@ -16,8 +16,12 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { api } from '../api';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 
 export default function NodeManager({ configs, onRefreshConfigs }) {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [revealedPasswords, setRevealedPasswords] = useState({});
@@ -95,7 +99,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
   const handleTestPusat = async () => {
     if (!formData.ServerPusat || !formData.DatabasePusat || !formData.UserPusat) {
-      alert('Mohon lengkapi Server, Database, dan User Pusat terlebih dahulu.');
+      toast.warning('Input Kurang Lengkap', 'Mohon lengkapi Server, Database, dan User Pusat terlebih dahulu.');
       return;
     }
     setTestingPusat(true);
@@ -108,8 +112,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         formData.PasswordPusat || '••••••••'
       );
       setResultPusat(res);
+      if (res.success) {
+        toast.success('Koneksi Pusat Berhasil', `Ping latency: ${res.latency_ms} ms`);
+      } else {
+        toast.error('Koneksi Pusat Gagal', res.message);
+      }
     } catch (err) {
       setResultPusat({ success: false, message: err.message, latency_ms: 0 });
+      toast.error('Koneksi Pusat Gagal', err.message);
     } finally {
       setTestingPusat(false);
     }
@@ -117,7 +127,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
   const handleTestLokal = async () => {
     if (!formData.ServerLokal || !formData.DatabaseLokal || !formData.UserLokal) {
-      alert('Mohon lengkapi Server, Database, dan User Lokal terlebih dahulu.');
+      toast.warning('Input Kurang Lengkap', 'Mohon lengkapi Server, Database, dan User Lokal terlebih dahulu.');
       return;
     }
     setTestingLokal(true);
@@ -130,8 +140,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         formData.PasswordLokal || '••••••••'
       );
       setResultLokal(res);
+      if (res.success) {
+        toast.success('Koneksi Lokal Berhasil', `Ping latency: ${res.latency_ms} ms`);
+      } else {
+        toast.error('Koneksi Lokal Gagal', res.message);
+      }
     } catch (err) {
       setResultLokal({ success: false, message: err.message, latency_ms: 0 });
+      toast.error('Koneksi Lokal Gagal', err.message);
     } finally {
       setTestingLokal(false);
     }
@@ -145,7 +161,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     const password = isPusat ? (formData.PasswordPusat || '••••••••') : (formData.PasswordLokal || '••••••••');
 
     if (!database) {
-      alert('Nama database tidak boleh kosong!');
+      toast.warning('Validasi Diperlukan', 'Nama database tidak boleh kosong!');
       return;
     }
 
@@ -154,7 +170,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
     try {
       const res = await api.createDatabase(server, database, user, password);
-      alert(res.message);
+      toast.success('Database Berhasil Dibuat', res.message);
       // Otomatis re-test koneksi agar status langsung hijau
       if (isPusat) {
         await handleTestPusat();
@@ -162,7 +178,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         await handleTestLokal();
       }
     } catch (err) {
-      alert(`Gagal membuat database: ${err.message}`);
+      toast.error('Gagal Membuat Database', err.message);
     } finally {
       if (isPusat) setCreatingDbPusat(false);
       else setCreatingDbLokal(false);
@@ -179,31 +195,41 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         if (!payload.PasswordPusat) delete payload.PasswordPusat;
         if (!payload.PasswordLokal) delete payload.PasswordLokal;
         await api.updateConfig(editingNodeId, payload);
+        toast.success('Node Berhasil Diperbarui', `Konfigurasi ${formData.CompanyName} (${formData.DatabasePusat}) telah disimpan.`);
       } else {
         // Create Node
         if (!formData.PasswordPusat || !formData.PasswordLokal) {
-          alert('Password Pusat dan Password Lokal wajib diisi untuk node baru!');
+          toast.warning('Input Wajib Diisi', 'Password Pusat dan Password Lokal wajib diisi untuk node baru!');
           setIsSaving(false);
           return;
         }
         await api.createConfig(formData);
+        toast.success('Node Baru Ditambahkan', `Node ${formData.CompanyName} (${formData.DatabasePusat}) berhasil disimpan.`);
       }
       setIsModalOpen(false);
       onRefreshConfigs();
     } catch (err) {
-      alert(`Gagal menyimpan: ${err.message}`);
+      toast.error('Gagal Menyimpan Node', err.message);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (nodeId, company, db) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus konfigurasi node ${company} (${db})? Tindakan ini akan memperbarui file sync_config.json.`)) {
+    const isConfirmed = await confirm({
+      title: 'Hapus Konfigurasi Node',
+      description: `Apakah Anda yakin ingin menghapus konfigurasi node ${company} (${db})? Tindakan ini akan memperbarui file sync_config.json dan menghentikan pemantauan node tersebut.`,
+      confirmText: 'Hapus Node',
+      variant: 'danger',
+    });
+
+    if (isConfirmed) {
       try {
         await api.deleteConfig(nodeId);
+        toast.success('Node Dihapus', `Konfigurasi ${company} (${db}) berhasil dihapus.`);
         onRefreshConfigs();
       } catch (err) {
-        alert(`Gagal menghapus: ${err.message}`);
+        toast.error('Gagal Menghapus Node', err.message);
       }
     }
   };

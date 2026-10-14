@@ -10,8 +10,12 @@ import {
   Database
 } from 'lucide-react';
 import { api } from '../api';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 
 export default function SchemaMigration() {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [auditSummary, setAuditSummary] = useState(null);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationResults, setMigrationResults] = useState(null);
@@ -34,16 +38,24 @@ export default function SchemaMigration() {
   }, []);
 
   const handleRunMigration = async () => {
-    if (!confirm("Konfirmasi: Apakah Anda ingin menjalankan Migrasi Skema Cerdas DDL (Smart Alter Table) pada semua database lokal? Operasi ini bersifat non-destruktif (Zero Data Loss).")) {
-      return;
-    }
+    const isConfirmed = await confirm({
+      title: 'Jalankan Migrasi Skema Cerdas DDL',
+      description: 'Apakah Anda ingin menjalankan Migrasi Skema Cerdas DDL (Smart Alter Table) pada semua database lokal? Operasi ini bersifat non-destruktif (Zero Data Loss) dan otomatis menyesuaikan struktur kolom.',
+      confirmText: 'Mulai Migrasi Skema',
+      variant: 'primary',
+    });
+
+    if (!isConfirmed) return;
+
     setIsMigrating(true);
     setMigrationResults(null);
     try {
+      toast.info('Migrasi Berjalan', 'Engine sedang mengevaluasi dan menyelaraskan skema DDL...');
       const res = await api.runMigration();
       setMigrationResults(res);
+      toast.success('Migrasi Skema Selesai', 'Seluruh database lokal telah diselaraskan dengan skema server pusat.');
     } catch (err) {
-      alert(`Migrasi skema gagal: ${err.message}`);
+      toast.error('Migrasi Skema Gagal', err.message);
     } finally {
       setIsMigrating(false);
     }

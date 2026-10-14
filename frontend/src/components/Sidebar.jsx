@@ -13,17 +13,17 @@ import {
 export default function Sidebar({ currentTab, setCurrentTab, systemHealth }) {
   const navItems = [
     { id: 'overview', label: 'Overview Monitoring', icon: Activity, badge: null },
-    { id: 'nodes', label: 'Config & Node Manager', icon: Database, badge: systemHealth?.total_nodes || 0 },
+    { id: 'nodes', label: 'Config & Nodes', icon: Database, badge: systemHealth?.total_nodes ? `${systemHealth.total_nodes}` : null },
     { id: 'logs', label: 'Live Activity Logs', icon: Terminal, badge: null },
-    { id: 'migration', label: 'Smart DDL Migration', icon: Layers, badge: '330+ Tables' },
-    { id: 'network', label: 'Multi-Device Guide', icon: Network, badge: 'LAN' },
+    { id: 'migration', label: 'Smart DDL Migration', icon: Layers, badge: '330' },
+    { id: 'network', label: 'Multi-Device LAN', icon: Network, badge: null },
   ];
 
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-icon">
-          <RefreshCw size={24} />
+          <RefreshCw size={20} />
         </div>
         <div className="brand-text">
           <h1>AgroSync Hub</h1>
@@ -41,10 +41,10 @@ export default function Sidebar({ currentTab, setCurrentTab, systemHealth }) {
                 className={`nav-item-btn ${isActive ? 'active' : ''}`}
                 onClick={() => setCurrentTab(item.id)}
               >
-                <Icon size={18} />
-                <span style={{ flex: 1 }}>{item.label}</span>
+                <Icon size={17} style={{ flexShrink: 0 }} />
+                <span className="nav-label">{item.label}</span>
                 {item.badge !== null && (
-                  <span className={`badge ${isActive ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                  <span className={`badge ${isActive ? 'badge-active' : 'badge-neutral'}`} style={{ marginLeft: 'auto', flexShrink: 0 }}>
                     {item.badge}
                   </span>
                 )}

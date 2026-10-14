@@ -16,6 +16,8 @@ import {
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
 import { api } from '../api';
+import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 
 export default function Overview({ 
   systemHealth, 
@@ -26,6 +28,9 @@ export default function Overview({
   onNavigateToLogs,
   onRefreshMetrics
 }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+
   // Daftar database node untuk metrik: prioritaskan companyMetrics, atau fallback ke systemHealth.nodes
   const displayNodes = (companyMetrics && companyMetrics.length > 0)
     ? companyMetrics
@@ -45,35 +50,51 @@ export default function Overview({
       })) || []);
 
   const handleResetNode = async (nodeKey) => {
-    if (window.confirm(`Reset seluruh akumulasi transaksi DML (Insert, Update, Delete) untuk node:\n\n${nodeKey}\n\nmenjadi 0?`)) {
+    const isConfirmed = await confirm({
+      title: 'Reset Akumulasi Transaksi',
+      description: `Apakah Anda yakin ingin mereset seluruh akumulasi transaksi DML (Insert, Update, Delete) untuk node:\n\n${nodeKey}\n\nmenjadi 0? Riwayat sync tetap tercatat di log.`,
+      confirmText: 'Reset Metrik ke 0',
+      variant: 'warning'
+    });
+
+    if (isConfirmed) {
       try {
         await api.resetNodeMetrics(nodeKey);
+        toast.success('Metrik Direset', `Akumulasi transaksi untuk ${nodeKey} berhasil disetel ke 0.`);
         onRefreshMetrics?.();
       } catch (err) {
-        alert(`Gagal mereset metrik node: ${err.message}`);
+        toast.error('Gagal Mereset Metrik', err.message);
       }
     }
   };
 
   const handleDeleteNodeMetric = async (nodeKey) => {
-    if (window.confirm(`Hapus kartu riwayat metrik node:\n\n${nodeKey}\n\ndari dashboard? Tindakan ini akan membersihkan kartu non-aktif.`)) {
+    const isConfirmed = await confirm({
+      title: 'Hapus Kartu Metrik Node',
+      description: `Apakah Anda yakin ingin menghapus kartu riwayat metrik node:\n\n${nodeKey}\n\ndari dashboard? Tindakan ini akan membersihkan kartu non-aktif.`,
+      confirmText: 'Hapus Kartu',
+      variant: 'danger'
+    });
+
+    if (isConfirmed) {
       try {
         await api.deleteNodeMetrics(nodeKey);
+        toast.success('Kartu Dihapus', `Kartu metrik node berhasil dibersihkan dari dashboard.`);
         onRefreshMetrics?.();
       } catch (err) {
-        alert(`Gagal menghapus kartu metrik: ${err.message}`);
+        toast.error('Gagal Menghapus Kartu Metrik', err.message);
       }
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Top Banner / Welcome */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Top Banner / Header */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)',
-        border: '1px solid rgba(16, 185, 129, 0.25)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '24px 28px',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '20px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -81,17 +102,20 @@ export default function Overview({
         gap: '16px'
       }}>
         <div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-            AgroSync Enterprise Hub & Monitoring
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '720px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              AgroSync Enterprise Hub & Monitoring
+            </h2>
+            <span className="badge badge-success">Production v1.0</span>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '720px' }}>
             Sistem sinkronisasi database cerdas hub-and-spoke multi-perusahaan (API, ANR, TTM) dengan DDL Non-Destruktif dan pelacakan DML tingkat kolom secara real-time.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary btn-sm" onClick={onNavigateToNodes}>
-            <Database size={14} />
+            <Database size={13} />
             <span>Kelola {systemHealth?.total_nodes || 0} Node Database</span>
           </button>
         </div>
@@ -170,27 +194,29 @@ export default function Overview({
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                       <span style={{
-                        background: 'rgba(16, 185, 129, 0.15)',
+                        background: 'rgba(16, 185, 129, 0.1)',
                         color: '#34d399',
-                        padding: '4px 8px',
+                        padding: '2px 8px',
                         borderRadius: 'var(--radius-sm)',
-                        fontWeight: 800,
-                        fontSize: '0.82rem'
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        flexShrink: 0
                       }}>
                         {cmp.company_name}
                       </span>
-                      <strong style={{ fontSize: '0.94rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Database size={15} color="#38bdf8" />
-                        <span>{cmp.database_pusat || cmp.company_name}</span>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Database size={14} color="#38bdf8" style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cmp.database_pusat || cmp.company_name}</span>
                       </strong>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       {cmp.is_active === false && (
                         <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
-                          RETIRED / NON-AKTIF
+                          NON-AKTIF
                         </span>
                       )}
                       <span className={`badge ${cmp.status === 'COMPLETED' ? 'badge-success' : cmp.status === 'FAILED' ? 'badge-danger' : 'badge-info'}`}>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Play, Pause, Square, Zap, RefreshCw, Clock, AlertTriangle, Database, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 
+import { useToast } from './Toast';
+
 export default function Navbar({ 
   syncStatus, 
   systemHealth, 
@@ -10,6 +12,7 @@ export default function Navbar({
   isRefreshing,
   onNavigateToMigration 
 }) {
+  const toast = useToast();
   const state = syncStatus?.state || 'IDLE';
   const [warningMessage, setWarningMessage] = useState(null);
 
@@ -73,30 +76,34 @@ export default function Navbar({
     try {
       if (state === 'PAUSED') {
         await api.resumeSync();
+        toast.info('Siklus Dilanjutkan', 'Engine sinkronisasi otomatis kembali aktif.');
       } else {
         await api.startSync();
+        toast.success('Engine Dimulai', 'Siklus otomatis berputar tiap interval.');
       }
       onRefreshAll();
     } catch (err) {
-      alert(`Gagal memulai siklus: ${err.message}`);
+      toast.error('Gagal Memulai Siklus', err.message);
     }
   };
 
   const handlePause = async () => {
     try {
       await api.pauseSync();
+      toast.warning('Engine Dijeda', 'Siklus otomatis ditahan sementara.');
       onRefreshAll();
     } catch (err) {
-      alert(`Gagal menjeda siklus: ${err.message}`);
+      toast.error('Gagal Menjeda Siklus', err.message);
     }
   };
 
   const handleStop = async () => {
     try {
       await api.stopSync();
+      toast.info('Engine Dihentikan', 'Siklus sinkronisasi otomatis dimatikan.');
       onRefreshAll();
     } catch (err) {
-      alert(`Gagal menghentikan siklus: ${err.message}`);
+      toast.error('Gagal Menghentikan Siklus', err.message);
     }
   };
 
@@ -106,7 +113,7 @@ export default function Navbar({
     try {
       await onTriggerSync();
     } catch (err) {
-      alert(`Gagal menjalankan sync on-demand: ${err.message}`);
+      toast.error('Gagal Sync On-Demand', err.message);
     }
   };
 
