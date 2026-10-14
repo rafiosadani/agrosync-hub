@@ -1,0 +1,46 @@
+[
+  {
+    "CompanyName": "API",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "APIdb001",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "localhost,1434",
+    "DatabaseLokal": "APIdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "Rt#4kQ$9wM!p2X"
+  },
+  {
+    "CompanyName": "API",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "APIdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "localhost,1434",
+    "DatabaseLokal": "APIdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "Rt#4kQ$9wM!p2X"
+  },
+  {
+    "CompanyName": "TTM",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "TTMdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "localhost,1434",
+    "DatabaseLokal": "TTMdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "Rt#4kQ$9wM!p2X"
+  },
+  {
+    "CompanyName": "API",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "APIdb001",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "APIdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  }
+]

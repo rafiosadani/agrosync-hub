@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node.js & Frontend dependencies/build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python environments
+venv/
+.venv/
+env/
+ENV/
+
+# OS metadata & Editor artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project temporary & backup files
+*.tmp
+sync_config.json.bak
+logs/*.log
+
+# Environment credentials (if created in the future)
+.env
+.env.*
+!.env.example

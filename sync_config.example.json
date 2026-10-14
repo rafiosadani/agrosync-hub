@@ -1,0 +1,24 @@
+[
+  {
+    "CompanyName": "API",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "APIdb001",
+    "UserPusat": "sa",
+    "PasswordPusat": "YourStrongPasswordHere!",
+    "ServerLokal": "localhost,1434",
+    "DatabaseLokal": "APIdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "YourStrongPasswordHere!"
+  },
+  {
+    "CompanyName": "TTM",
+    "ServerPusat": "localhost,1433",
+    "DatabasePusat": "TTMdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "YourStrongPasswordHere!",
+    "ServerLokal": "192.168.1.100,1433",
+    "DatabaseLokal": "TTMdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "YourStrongPasswordHere!"
+  }
+]
