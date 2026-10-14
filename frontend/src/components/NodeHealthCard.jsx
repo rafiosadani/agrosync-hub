@@ -7,34 +7,35 @@ export default function NodeHealthCard({ node, onEdit }) {
 
   return (
     <div className="card" style={{ padding: '20px', position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <div style={{
             background: 'rgba(16, 185, 129, 0.1)',
             color: '#34d399',
-            padding: '6px 12px',
+            padding: '4px 10px',
             borderRadius: 'var(--radius-sm)',
             fontWeight: 800,
-            fontSize: '0.9rem',
-            border: '1px solid rgba(16, 185, 129, 0.25)'
+            fontSize: '0.85rem',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            flexShrink: 0
           }}>
             {node.company_name}
           </div>
-          <div>
-            <div style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {node.database_pusat} ➔ {node.database_lokal}
             </div>
             <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>Node #{node.id + 1}</span>
               <span>•</span>
-              <span style={{ fontFamily: 'monospace', color: '#6ee7b7' }}>
+              <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                 Lokal: {node.server_lokal || 'Port Lokal'}
               </span>
             </div>
           </div>
         </div>
 
-        <span className={`badge ${isHealthy ? 'badge-success' : isDegraded ? 'badge-warning' : 'badge-danger'}`}>
+        <span className={`badge ${isHealthy ? 'badge-success' : isDegraded ? 'badge-warning' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
           {node.overall_status}
         </span>
       </div>

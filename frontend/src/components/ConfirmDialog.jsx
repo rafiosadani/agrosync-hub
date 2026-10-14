@@ -77,15 +77,15 @@ export function ConfirmDialogProvider({ children }) {
         >
           <div
             style={{
-              background: '#18181b',
-              border: '1px solid #27272a',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '12px',
               maxWidth: '460px',
               width: '100%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+              boxShadow: 'var(--shadow-lg)',
               padding: '24px',
               animation: 'scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-              color: '#f4f4f5'
+              color: 'var(--text-primary)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -121,10 +121,10 @@ export function ConfirmDialogProvider({ children }) {
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fafafa', marginBottom: '6px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
                   {dialogState.title}
                 </h3>
-                <p style={{ fontSize: '0.86rem', color: '#a1a1aa', lineHeight: '1.5', whiteSpace: 'pre-line' }}>
+                <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.5', whiteSpace: 'pre-line' }}>
                   {dialogState.description}
                 </p>
               </div>

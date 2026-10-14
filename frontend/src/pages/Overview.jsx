@@ -108,7 +108,7 @@ export default function Overview({
             </h2>
             <span className="badge badge-success">Production v1.0</span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '720px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Sistem sinkronisasi database cerdas hub-and-spoke multi-perusahaan (API, ANR, TTM) dengan DDL Non-Destruktif dan pelacakan DML tingkat kolom secara real-time.
           </p>
         </div>

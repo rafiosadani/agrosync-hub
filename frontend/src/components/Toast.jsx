@@ -79,25 +79,25 @@ export function ToastProvider({ children }) {
               key={t.id}
               style={{
                 pointerEvents: 'auto',
-                background: '#18181b',
+                background: 'var(--bg-card)',
                 border: `1px solid ${borderColor}`,
                 borderRadius: '8px',
                 padding: '12px 14px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4)',
+                boxShadow: 'var(--shadow-lg)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '12px',
                 animation: 'toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                color: '#fafafa',
+                color: 'var(--text-primary)',
               }}
             >
               <IconComponent size={18} color={iconColor} style={{ marginTop: '2px', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#f4f4f5', lineHeight: '1.4' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: '1.4' }}>
                   {t.message}
                 </div>
                 {t.description && (
-                  <div style={{ fontSize: '0.78rem', color: '#a1a1aa', marginTop: '3px', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '3px', lineHeight: '1.4' }}>
                     {t.description}
                   </div>
                 )}

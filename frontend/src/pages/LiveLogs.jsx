@@ -220,13 +220,13 @@ export default function LiveLogs() {
                 if (log.level === 'INFO') color = '#38bdf8';
 
                 return (
-                  <div key={log.id} className="terminal-line" style={{ display: 'flex', gap: '12px' }}>
-                    <span style={{ color: '#475569', userSelect: 'none' }}>[{log.timestamp}]</span>
-                    <span style={{ color: color, fontWeight: 700, width: '70px' }}>[{log.level}]</span>
+                  <div key={log.id} className="terminal-line" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{ color: '#64748b', userSelect: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.timestamp}]</span>
+                    <span style={{ color: color, fontWeight: 700, minWidth: '88px', flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.level}]</span>
                     {log.company_name && (
-                      <span style={{ color: '#a7f3d0', fontWeight: 600 }}>[{log.company_name}]</span>
+                      <span style={{ color: '#34d399', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.company_name}]</span>
                     )}
-                    <span style={{ color: '#f1f5f9', flex: 1 }}>{log.message}</span>
+                    <span style={{ color: '#f1f5f9', flex: 1, wordBreak: 'break-word' }}>{log.message}</span>
                   </div>
                 );
               })
@@ -243,21 +243,21 @@ export default function LiveLogs() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: '160px' }}>Timestamp</th>
-                  <th style={{ width: '100px' }}>Level</th>
-                  <th style={{ width: '90px' }}>Perusahaan</th>
+                  <th style={{ width: '175px', whiteSpace: 'nowrap' }}>Timestamp</th>
+                  <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Level</th>
+                  <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Perusahaan</th>
                   <th>Pesan / Aktivitas</th>
-                  <th style={{ width: '220px', textAlign: 'right' }}>Rincian DML</th>
+                  <th style={{ width: '220px', textAlign: 'right', whiteSpace: 'nowrap' }}>Rincian DML</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length > 0 ? (
                   logs.map((log) => (
                     <tr key={log.id}>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {log.timestamp}
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <span className={`badge ${
                           log.level === 'SUCCESS' ? 'badge-success' :
                           log.level === 'ERROR' ? 'badge-danger' :
@@ -266,7 +266,7 @@ export default function LiveLogs() {
                           {log.level}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {log.company_name ? (
                           <strong style={{ color: '#34d399' }}>{log.company_name}</strong>
                         ) : (

@@ -357,7 +357,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
             {/* Box Konfigurasi Pusat */}
             <div style={{
               background: 'rgba(0, 0, 0, 0.25)',
@@ -475,10 +475,10 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   <input
                     type={showModalPassPusat ? "text" : "password"}
                     className="form-input"
-                    style={{ paddingRight: '40px', width: '100%' }}
+                    style={{ paddingRight: '42px', width: '100%' }}
                     value={formData.PasswordPusat}
                     onChange={(e) => setFormData({ ...formData, PasswordPusat: e.target.value })}
-                    placeholder={editingNodeId !== null ? "•••••••• (Tetap password lama)" : "Masukkan password SQL Server"}
+                    placeholder={editingNodeId !== null ? "•••••••• (Tetap password lama)" : "Password SQL Server"}
                   />
                   <button
                     type="button"
@@ -619,10 +619,10 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   <input
                     type={showModalPassLokal ? "text" : "password"}
                     className="form-input"
-                    style={{ paddingRight: '40px', width: '100%' }}
+                    style={{ paddingRight: '42px', width: '100%' }}
                     value={formData.PasswordLokal}
                     onChange={(e) => setFormData({ ...formData, PasswordLokal: e.target.value })}
-                    placeholder={editingNodeId !== null ? "•••••••• (Tetap password lama)" : "Masukkan password SQL Server"}
+                    placeholder={editingNodeId !== null ? "•••••••• (Tetap password lama)" : "Password SQL Server"}
                   />
                   <button
                     type="button"

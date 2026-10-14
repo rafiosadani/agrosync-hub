@@ -6,14 +6,28 @@ export default function MetricCard({ title, value, subtitle, icon: Icon, accentC
       <div className="metric-header">
         <span className="metric-title">{title}</span>
         <div className="metric-icon-box" style={{ color: accentColor }}>
-          <Icon size={20} />
+          <Icon size={18} />
         </div>
       </div>
       <div className="metric-value">{value?.toLocaleString() || 0}</div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="metric-sub">{subtitle}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
+        <div 
+          className="metric-sub" 
+          title={subtitle}
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+        >
+          {subtitle}
+        </div>
         {trend && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: accentColor }}>
+          <span 
+            style={{ 
+              fontSize: '0.74rem', 
+              fontWeight: 600, 
+              color: accentColor, 
+              whiteSpace: 'nowrap', 
+              flexShrink: 0 
+            }}
+          >
             {trend}
           </span>
         )}

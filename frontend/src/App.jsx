@@ -20,6 +20,17 @@ export default function App() {
   const [recentLogs, setRecentLogs] = useState([]);
   const [syncStatus, setSyncStatus] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('agrosync_sidebar_collapsed') === 'true';
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('agrosync_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const fetchDashboardData = async (forceHealth = false) => {
     setIsRefreshing(true);
@@ -66,15 +77,17 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Fixed Left Sidebar */}
+      {/* Collapsible Left Sidebar */}
       <Sidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         systemHealth={systemHealth}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
 
       {/* Main Content Area */}
-      <div className="main-content">
+      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Navbar
           syncStatus={syncStatus}
           systemHealth={systemHealth}
@@ -82,6 +95,8 @@ export default function App() {
           onRefreshAll={() => fetchDashboardData(true)}
           isRefreshing={isRefreshing}
           onNavigateToMigration={() => setCurrentTab('migration')}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         <main className="content-body">

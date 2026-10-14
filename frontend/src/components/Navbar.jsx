@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
-import { Play, Pause, Square, Zap, RefreshCw, Clock, AlertTriangle, Database, ArrowRight } from 'lucide-react';
+import { 
+  Play, 
+  Pause, 
+  Square, 
+  Zap, 
+  RefreshCw, 
+  Clock, 
+  AlertTriangle, 
+  Database, 
+  ArrowRight,
+  Sun,
+  Moon,
+  Monitor,
+  PanelLeftOpen
+} from 'lucide-react';
 import { api } from '../api';
-
 import { useToast } from './Toast';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar({ 
   syncStatus, 
@@ -10,11 +24,27 @@ export default function Navbar({
   onTriggerSync, 
   onRefreshAll, 
   isRefreshing,
-  onNavigateToMigration 
+  onNavigateToMigration,
+  isSidebarCollapsed,
+  onToggleSidebar
 }) {
   const toast = useToast();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const state = syncStatus?.state || 'IDLE';
   const [warningMessage, setWarningMessage] = useState(null);
+
+  const cycleTheme = () => {
+    if (theme === 'system') {
+      setTheme('dark');
+      toast.info('Tema Gelap Aktif', 'Tampilan disetel ke Dark Theme.');
+    } else if (theme === 'dark') {
+      setTheme('light');
+      toast.info('Tema Terang Aktif', 'Tampilan disetel ke Light Theme.');
+    } else {
+      setTheme('system');
+      toast.info('Tema Sistem Aktif', 'Tampilan otomatis mengikuti preferensi laptop OS.');
+    }
+  };
 
   // Periksa apakah seluruh database online dan sehat
   const isDatabaseReady = systemHealth && (systemHealth.status === 'HEALTHY' || systemHealth.healthy_nodes > 0);
@@ -120,10 +150,22 @@ export default function Navbar({
   return (
     <>
       <header className="navbar">
-        {/* KIRI: Status Indikator Engine & Waktu Last Sync */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* KIRI: Toggle Sidebar (bila collapsed) & Status Indikator Engine */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="btn btn-secondary btn-sm"
+              title="Buka Sidebar (Expand)"
+              style={{ padding: '6px 8px' }}
+            >
+              <PanelLeftOpen size={15} />
+            </button>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
               Engine State:
             </span>
             {getStatusBadge(state)}
@@ -142,15 +184,35 @@ export default function Navbar({
           )}
 
           {syncStatus?.last_sync_time && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              <Clock size={14} color="var(--text-muted)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <Clock size={13} color="var(--text-muted)" />
               <span>Terakhir: <strong style={{ color: 'var(--text-primary)' }}>{syncStatus.last_sync_time}</strong></span>
             </div>
           )}
         </div>
 
-        {/* KANAN: Tombol Kontrol Lengkap (Refresh, Play/Pause, Stop, Sync Now) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* KANAN: Tombol Kontrol Lengkap & Switcher Tema */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+          {/* Switcher Tema Laptop: Auto (System) / Dark / Light */}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={cycleTheme}
+            title={`Tema: ${theme === 'system' ? 'Mengikuti Sistem Laptop (Auto)' : theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'} (Klik untuk berganti)`}
+            style={{ padding: '6px 10px' }}
+          >
+            {theme === 'system' ? (
+              <Monitor size={14} color="#10b981" />
+            ) : theme === 'dark' ? (
+              <Moon size={14} color="#38bdf8" />
+            ) : (
+              <Sun size={14} color="#f59e0b" />
+            )}
+            <span style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
+              {theme === 'system' ? 'Auto OS' : theme}
+            </span>
+          </button>
+
           {/* Tombol Refresh Data */}
           <button
             className="btn btn-secondary btn-sm"

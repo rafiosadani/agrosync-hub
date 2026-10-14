@@ -6,11 +6,17 @@ import {
   Layers, 
   Network, 
   RefreshCw, 
-  CheckCircle2, 
-  AlertTriangle 
+  PanelLeftClose, 
+  PanelLeftOpen 
 } from 'lucide-react';
 
-export default function Sidebar({ currentTab, setCurrentTab, systemHealth }) {
+export default function Sidebar({ 
+  currentTab, 
+  setCurrentTab, 
+  systemHealth,
+  isCollapsed,
+  onToggleCollapse
+}) {
   const navItems = [
     { id: 'overview', label: 'Overview Monitoring', icon: Activity, badge: null },
     { id: 'nodes', label: 'Config & Nodes', icon: Database, badge: systemHealth?.total_nodes ? `${systemHealth.total_nodes}` : null },
@@ -20,31 +26,54 @@ export default function Sidebar({ currentTab, setCurrentTab, systemHealth }) {
   ];
 
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-icon">
-          <RefreshCw size={20} />
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      {/* Brand Header */}
+      <div className="brand" style={{ padding: isCollapsed ? '16px 12px' : '16px 18px', justifyContent: isCollapsed ? 'center' : 'space-between' }}>
+        <div className="brand-left" style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', width: isCollapsed ? '100%' : 'auto' }}>
+          <div className="brand-icon" title="AgroSync Hub v1.0">
+            <RefreshCw size={18} />
+          </div>
+          {!isCollapsed && (
+            <div className="brand-text">
+              <h1>AgroSync Hub</h1>
+              <p>Enterprise Sync v1.0</p>
+            </div>
+          )}
         </div>
-        <div className="brand-text">
-          <h1>AgroSync Hub</h1>
-          <p>Enterprise Sync v1.0</p>
-        </div>
+
+        {/* Toggle Minimize/Maximize Button */}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="brand-toggle-btn"
+          title={isCollapsed ? "Buka Sidebar (Expand)" : "Kecilkan Sidebar (Minimize)"}
+          style={{ marginTop: isCollapsed ? '8px' : '0' }}
+        >
+          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
-      <ul className="nav-menu">
+      {/* Nav Menu */}
+      <ul className="nav-menu" style={{ padding: isCollapsed ? '16px 8px' : '16px 12px' }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
           return (
             <li key={item.id}>
               <button
+                type="button"
                 className={`nav-item-btn ${isActive ? 'active' : ''}`}
                 onClick={() => setCurrentTab(item.id)}
+                title={item.label}
               >
                 <Icon size={17} style={{ flexShrink: 0 }} />
-                <span className="nav-label">{item.label}</span>
-                {item.badge !== null && (
-                  <span className={`badge ${isActive ? 'badge-active' : 'badge-neutral'}`} style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                {!isCollapsed && (
+                  <span className="nav-label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.label}
+                  </span>
+                )}
+                {!isCollapsed && item.badge !== null && (
+                  <span className={`badge ${isActive ? 'badge-active' : 'badge-neutral'} nav-badge`}>
                     {item.badge}
                   </span>
                 )}
@@ -55,32 +84,48 @@ export default function Sidebar({ currentTab, setCurrentTab, systemHealth }) {
       </ul>
 
       {/* System Health Card Footer */}
-      <div style={{ padding: '20px', borderTop: '1px solid var(--border-subtle)' }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-md)',
-          padding: '14px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-              System Health
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className={`pulse-dot ${systemHealth?.status === 'HEALTHY' ? 'pulse-dot-green' : 'pulse-dot-yellow'}`} />
-              <span style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: 700, 
-                color: systemHealth?.status === 'HEALTHY' ? '#34d399' : '#fbbf24' 
-              }}>
-                {systemHealth?.status || 'CHECKING'}
+      <div style={{ padding: isCollapsed ? '12px' : '16px', borderTop: '1px solid var(--border-subtle)' }}>
+        {isCollapsed ? (
+          <div 
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: '10px 0',
+              cursor: 'pointer'
+            }}
+            title={`System Health: ${systemHealth?.status || 'CHECKING'} (${systemHealth?.healthy_nodes || 0}/${systemHealth?.total_nodes || 0} Nodes Online)`}
+          >
+            <span className={`pulse-dot ${systemHealth?.status === 'HEALTHY' ? 'pulse-dot-green' : 'pulse-dot-yellow'}`} />
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                System Health
               </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className={`pulse-dot ${systemHealth?.status === 'HEALTHY' ? 'pulse-dot-green' : 'pulse-dot-yellow'}`} />
+                <span style={{ 
+                  fontSize: '0.73rem', 
+                  fontWeight: 700, 
+                  color: systemHealth?.status === 'HEALTHY' ? '#10b981' : '#f59e0b' 
+                }}>
+                  {systemHealth?.status || 'CHECKING'}
+                </span>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+              Nodes: <strong style={{ color: 'var(--text-primary)' }}>{systemHealth?.healthy_nodes || 0}</strong> / {systemHealth?.total_nodes || 0} Online
             </div>
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            Nodes: <strong style={{ color: 'var(--text-primary)' }}>{systemHealth?.healthy_nodes || 0}</strong> / {systemHealth?.total_nodes || 0} Online
-          </div>
-        </div>
+        )}
       </div>
     </aside>
   );
