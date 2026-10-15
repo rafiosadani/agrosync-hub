@@ -6,7 +6,7 @@ import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 import pyodbc
-from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS, STATE_FILE_PATH, SCHEMA_AUDIT_PATH
+from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS, STATE_FILE_PATH
 from .config_manager import ConfigManager
 from ..models.metrics_models import ActivityLogItem
 
@@ -163,10 +163,6 @@ class EnterpriseSyncEngine:
         self.activity_logs: List[ActivityLogItem] = []
         self._max_logs = 1000
 
-        # Living Schema Audit cache
-        self._audit_cache: Optional[List[Dict[str, Any]]] = None
-        self._audit_keys: Optional[set] = None
-
         # Unpause initially
         self._pause_event.set()
 
@@ -282,49 +278,7 @@ class EnterpriseSyncEngine:
         except Exception as e:
             pass
 
-    def _register_new_column_to_audit(self, table_name: str, col_meta: Dict[str, Any]):
-        """Mendaftarkan kolom baru hasil Self-Healing DDL ke database_schema_audit.json secara atomic"""
-        try:
-            if not os.path.exists(SCHEMA_AUDIT_PATH):
-                return
 
-            if self._audit_keys is None:
-                with open(SCHEMA_AUDIT_PATH, "r", encoding="utf-8") as f:
-                    self._audit_cache = json.load(f)
-                    self._audit_keys = {
-                        (item.get("TableName", "").lower(), item.get("ColumnName", "").lower())
-                        for item in self._audit_cache
-                    }
-
-            key = (table_name.lower(), col_meta.get("ColumnName", "").lower())
-            if key not in self._audit_keys:
-                audit_entry = {
-                    "TableName": table_name,
-                    "ColumnName": col_meta.get("ColumnName"),
-                    "DataType": col_meta.get("DataType", "varchar"),
-                    "NumericPrecision": col_meta.get("NumericPrecision", 0),
-                    "NumericScale": col_meta.get("NumericScale", 0),
-                    "MaxLength": str(col_meta.get("MaxLength", "MAX")),
-                    "IsNullable": col_meta.get("IsNullable", "YES"),
-                    "IsPrimaryKey": col_meta.get("IsPrimaryKey", "NO"),
-                    "IsUnique": col_meta.get("IsUnique", "NO"),
-                    "ReferencedTable": "-",
-                    "ReferencedColumn": "-"
-                }
-                self._audit_cache.append(audit_entry)
-                self._audit_keys.add(key)
-
-                temp_path = f"{SCHEMA_AUDIT_PATH}.tmp"
-                with open(temp_path, "w", encoding="utf-8") as f:
-                    json.dump(self._audit_cache, f, indent=2, ensure_ascii=False)
-                os.replace(temp_path, SCHEMA_AUDIT_PATH)
-                self.add_log(
-                    "INFO",
-                    f"📝 Living Schema Audit: Kolom [{table_name}].[{col_meta.get('ColumnName')}] berhasil dicatat ke database_schema_audit.json.",
-                    table_name=table_name
-                )
-        except Exception as e:
-            print(f"⚠️ [SyncEngine] Gagal mendaftarkan kolom baru ke schema audit: {e}")
 
     def add_log(self, level: str, message: str, company_name: Optional[str] = None, table_name: Optional[str] = None, inserts: int = 0, updates: int = 0, deletes: int = 0):
         with self._lock:
@@ -696,8 +650,6 @@ class EnterpriseSyncEngine:
                         cursor_target.execute(create_table_sql)
                         conn_target.commit()
                         self.add_log("INFO", f"[{comp_name}] 🛠️ Self-Healing DDL: Tabel baru [{table}] otomatis dibuat di server target.", comp_name, table)
-                        for c_name, c_meta in source_col_details.items():
-                            self._register_new_column_to_audit(table, c_meta)
 
                     # 2. PILAR 1: Self-Healing DDL (Pengecekan dan penambahan kolom yang kurang di target)
                     target_cols = set(get_table_columns(cursor_target, table))
@@ -718,7 +670,6 @@ class EnterpriseSyncEngine:
                                     comp_name,
                                     table
                                 )
-                                self._register_new_column_to_audit(table, col_meta)
                             except Exception as alt_err:
                                 self.add_log(
                                     "WARNING",
