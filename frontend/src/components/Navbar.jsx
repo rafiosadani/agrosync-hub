@@ -33,18 +33,7 @@ export default function Navbar({
   const state = syncStatus?.state || 'IDLE';
   const [warningMessage, setWarningMessage] = useState(null);
 
-  const cycleTheme = () => {
-    if (theme === 'system') {
-      setTheme('dark');
-      toast.info('Tema Gelap Aktif', 'Tampilan disetel ke Dark Theme.');
-    } else if (theme === 'dark') {
-      setTheme('light');
-      toast.info('Tema Terang Aktif', 'Tampilan disetel ke Light Theme.');
-    } else {
-      setTheme('system');
-      toast.info('Tema Sistem Aktif', 'Tampilan otomatis mengikuti preferensi laptop OS.');
-    }
-  };
+
 
   // Periksa apakah seluruh database online dan sehat
   const isDatabaseReady = systemHealth && (systemHealth.status === 'HEALTHY' || systemHealth.healthy_nodes > 0);
@@ -151,16 +140,17 @@ export default function Navbar({
     <>
       <header className="navbar">
         {/* KIRI: Toggle Sidebar (bila collapsed) & Status Indikator Engine */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {isSidebarCollapsed && (
             <button
               type="button"
               onClick={onToggleSidebar}
               className="btn btn-secondary btn-sm"
               title="Buka Sidebar (Expand)"
-              style={{ padding: '6px 8px' }}
+              style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <PanelLeftOpen size={15} />
+              <span style={{ fontSize: '0.78rem' }}>Menu</span>
             </button>
           )}
 
@@ -191,27 +181,47 @@ export default function Navbar({
           )}
         </div>
 
-        {/* KANAN: Tombol Kontrol Lengkap & Switcher Tema */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-          {/* Switcher Tema Laptop: Auto (System) / Dark / Light */}
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={cycleTheme}
-            title={`Tema: ${theme === 'system' ? 'Mengikuti Sistem Laptop (Auto)' : theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'} (Klik untuk berganti)`}
-            style={{ padding: '6px 10px' }}
-          >
-            {theme === 'system' ? (
-              <Monitor size={14} color="#10b981" />
-            ) : theme === 'dark' ? (
-              <Moon size={14} color="#38bdf8" />
-            ) : (
-              <Sun size={14} color="#f59e0b" />
-            )}
-            <span style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
-              {theme === 'system' ? 'Auto OS' : theme}
-            </span>
-          </button>
+        {/* KANAN: Tombol Kontrol Lengkap & Switcher Tema Segmented */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Segmented Control Switcher Tema Laptop: Dark / Light / Auto OS */}
+          <div className="theme-segmented-control" role="group" aria-label="Pilihan Tema Tampilan">
+            <button
+              type="button"
+              className={`theme-segment-btn ${theme === 'dark' ? 'active' : ''}`}
+              onClick={() => {
+                setTheme('dark');
+                toast.info('Tema Gelap', 'Mode tampilan gelap aktif.');
+              }}
+              title="Beralih ke Mode Gelap (Dark Theme)"
+            >
+              <Moon size={13} />
+              <span>Gelap</span>
+            </button>
+            <button
+              type="button"
+              className={`theme-segment-btn ${theme === 'light' ? 'active' : ''}`}
+              onClick={() => {
+                setTheme('light');
+                toast.info('Tema Terang', 'Mode tampilan terang aktif.');
+              }}
+              title="Beralih ke Mode Terang (Light Theme)"
+            >
+              <Sun size={13} />
+              <span>Terang</span>
+            </button>
+            <button
+              type="button"
+              className={`theme-segment-btn ${theme === 'system' ? 'active' : ''}`}
+              onClick={() => {
+                setTheme('system');
+                toast.info('Tema Otomatis OS', 'Mengikuti setelan tampilan laptop.');
+              }}
+              title="Otomatis mengikuti preferensi OS Laptop (Auto)"
+            >
+              <Monitor size={13} />
+              <span>Auto</span>
+            </button>
+          </div>
 
           {/* Tombol Refresh Data */}
           <button

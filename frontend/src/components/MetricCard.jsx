@@ -14,7 +14,7 @@ export default function MetricCard({ title, value, subtitle, icon: Icon, accentC
         <div 
           className="metric-sub" 
           title={subtitle}
-          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+          style={{ minWidth: 0, lineHeight: 1.35 }}
         >
           {subtitle}
         </div>

@@ -111,39 +111,39 @@ export default function Overview({
         background: 'var(--bg-card)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
-        padding: '20px 24px',
+        padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '16px'
+        gap: '14px'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        <div style={{ minWidth: '280px', flex: '1 1 400px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '1.12rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               AgroSync Enterprise Hub & Monitoring
             </h2>
             <span className="badge badge-success">Production v1.0</span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.4 }}>
             Sistem sinkronisasi database cerdas hub-and-spoke multi-perusahaan (API, ANR, TTM) dengan DDL Non-Destruktif dan pelacakan DML tingkat kolom secara real-time.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {networkInfo && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '6px 14px',
+              gap: '6px',
+              padding: '5px 12px',
               background: 'rgba(56, 189, 248, 0.08)',
               border: '1px solid rgba(56, 189, 248, 0.25)',
               borderRadius: 'var(--radius-sm)',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               color: '#38bdf8'
             }}>
-              <Wifi size={14} />
+              <Wifi size={13} />
               <span>Host Lokal: <strong>{networkInfo.local_ip}</strong> <span style={{ color: 'var(--text-muted)' }}>({networkInfo.local_hostname})</span></span>
             </div>
           )}
@@ -221,17 +221,18 @@ export default function Overview({
               <div 
                 key={cmp.node_key || i} 
                 style={{
-                  background: 'rgba(0, 0, 0, 0.25)',
+                  background: 'var(--bg-card)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                   padding: '18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  boxShadow: 'var(--shadow-card, var(--shadow-sm))'
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '8px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                       <span style={{
                         background: 'rgba(16, 185, 129, 0.1)',
@@ -245,9 +246,9 @@ export default function Overview({
                       }}>
                         {cmp.company_name}
                       </span>
-                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Database size={14} color="#38bdf8" style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cmp.database_pusat || cmp.company_name}</span>
+                        <span>{cmp.database_pusat || cmp.company_name}</span>
                       </strong>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
@@ -264,7 +265,7 @@ export default function Overview({
                         onClick={() => handleResetNode(cmp.node_key)}
                         title="Reset akumulasi transaksi node ini ke 0"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
+                          background: 'var(--bg-card-hover)',
                           border: '1px solid var(--border-subtle)',
                           borderRadius: 'var(--radius-sm)',
                           color: 'var(--text-muted)',
@@ -298,37 +299,31 @@ export default function Overview({
                     </div>
                   </div>
 
-                  {/* Route Info: Server Pusat -> Server Lokal */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '0.73rem',
-                    fontFamily: 'monospace',
-                    color: 'var(--text-secondary)',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    padding: '5px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid rgba(255, 255, 255, 0.07)',
-                    marginBottom: '12px'
-                  }}>
-                    <span style={{ color: '#38bdf8' }}>{cmp.server_pusat || 'localhost,1433'}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>➔</span>
-                    <span style={{ color: '#34d399', fontWeight: 700 }}>{cmp.server_lokal || 'Port Lokal'}</span>
+                  {/* Route Info: Server Pusat -> Server Lokal (Responsive Pill) */}
+                  <div className="node-route-container">
+                    <div className="node-route-item">
+                      <span className="node-route-tag pusat">PUSAT</span>
+                      <span className="node-route-address">{cmp.server_pusat || 'localhost,1433'}</span>
+                    </div>
+                    <span className="node-route-arrow">➔</span>
+                    <div className="node-route-item">
+                      <span className="node-route-tag lokal">LOKAL</span>
+                      <span className="node-route-address">{cmp.server_lokal || 'Port Lokal'}</span>
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center', margin: '14px 0' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 600 }}>INSERT</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{cmp.total_inserts}</div>
+                    <div style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', padding: '10px 6px', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, letterSpacing: '0.04em' }}>INSERT</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>{cmp.total_inserts?.toLocaleString() || 0}</div>
                     </div>
-                    <div style={{ background: 'rgba(6, 182, 212, 0.08)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>UPDATE</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{cmp.total_updates}</div>
+                    <div style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', padding: '10px 6px', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700, letterSpacing: '0.04em' }}>UPDATE</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>{cmp.total_updates?.toLocaleString() || 0}</div>
                     </div>
-                    <div style={{ background: 'rgba(244, 63, 94, 0.08)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#fb7185', fontWeight: 600 }}>DELETE</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{cmp.total_deletes}</div>
+                    <div style={{ background: 'var(--bg-card-inner)', border: '1px solid var(--border-subtle)', padding: '10px 6px', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, letterSpacing: '0.04em' }}>DELETE</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>{cmp.total_deletes?.toLocaleString() || 0}</div>
                     </div>
                   </div>
                 </div>

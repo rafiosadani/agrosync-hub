@@ -30,7 +30,12 @@ export default function Sidebar({
       {/* Brand Header */}
       <div className="brand" style={{ padding: isCollapsed ? '16px 12px' : '16px 18px', justifyContent: isCollapsed ? 'center' : 'space-between' }}>
         <div className="brand-left" style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', width: isCollapsed ? '100%' : 'auto' }}>
-          <div className="brand-icon" title="AgroSync Hub v1.0">
+          <div 
+            className="brand-icon" 
+            title={isCollapsed ? "Klik untuk membuka sidebar" : "AgroSync Hub v1.0"}
+            onClick={isCollapsed ? onToggleCollapse : undefined}
+            style={{ cursor: isCollapsed ? 'pointer' : 'default' }}
+          >
             <RefreshCw size={18} />
           </div>
           {!isCollapsed && (
@@ -41,16 +46,17 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Toggle Minimize/Maximize Button */}
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="brand-toggle-btn"
-          title={isCollapsed ? "Buka Sidebar (Expand)" : "Kecilkan Sidebar (Minimize)"}
-          style={{ marginTop: isCollapsed ? '8px' : '0' }}
-        >
-          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-        </button>
+        {/* Toggle Minimize Button (Hanya di dalam sidebar saat posisi expanded) */}
+        {!isCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="brand-toggle-btn"
+            title="Kecilkan Sidebar (Minimize)"
+          >
+            <PanelLeftClose size={16} />
+          </button>
+        )}
       </div>
 
       {/* Nav Menu */}
@@ -68,7 +74,7 @@ export default function Sidebar({
               >
                 <Icon size={17} style={{ flexShrink: 0 }} />
                 {!isCollapsed && (
-                  <span className="nav-label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span className="nav-label">
                     {item.label}
                   </span>
                 )}
