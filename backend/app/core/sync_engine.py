@@ -6,7 +6,7 @@ import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 import pyodbc
-from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS, STATE_FILE_PATH
+from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS, STATE_FILE_PATH, SCHEMA_AUDIT_PATH
 from .config_manager import ConfigManager
 from ..models.metrics_models import ActivityLogItem
 
@@ -37,6 +37,87 @@ def get_table_columns(cursor, table_name):
     """
     cursor.execute(query, table_name)
     return [row.COLUMN_NAME for row in cursor.fetchall()]
+
+def get_table_columns_detail(cursor, table_name: str) -> Dict[str, Dict[str, Any]]:
+    """Mengambil metadata kolom lengkap dari INFORMATION_SCHEMA.COLUMNS"""
+    query = """
+        SELECT 
+            COLUMN_NAME, 
+            DATA_TYPE, 
+            CHARACTER_MAXIMUM_LENGTH, 
+            NUMERIC_PRECISION, 
+            NUMERIC_SCALE, 
+            IS_NULLABLE
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = ?
+        ORDER BY ORDINAL_POSITION
+    """
+    cursor.execute(query, table_name)
+    details = {}
+    for row in cursor.fetchall():
+        col_name = row.COLUMN_NAME
+        max_len = row.CHARACTER_MAXIMUM_LENGTH
+        if max_len == -1:
+            max_len_str = "MAX"
+        elif max_len is not None:
+            max_len_str = str(max_len)
+        else:
+            max_len_str = "MAX"
+
+        details[col_name] = {
+            "TableName": table_name,
+            "ColumnName": col_name,
+            "DataType": (row.DATA_TYPE or "varchar").lower(),
+            "MaxLength": max_len_str,
+            "NumericPrecision": row.NUMERIC_PRECISION or 0,
+            "NumericScale": row.NUMERIC_SCALE or 0,
+            "IsNullable": row.IS_NULLABLE or "YES",
+            "IsPrimaryKey": "NO",
+            "IsUnique": "NO",
+            "ReferencedTable": "-",
+            "ReferencedColumn": "-"
+        }
+    return details
+
+def format_sql_column_type(col_meta: Dict[str, Any]) -> str:
+    """Menerjemahkan metadata kolom menjadi sintaks DDL SQL Server yang valid"""
+    dt = str(col_meta.get("DataType", "varchar")).lower()
+    max_len = col_meta.get("MaxLength")
+
+    if dt in ('varchar', 'char'):
+        if max_len is None or str(max_len).upper() in ('MAX', '-1'):
+            return "VARCHAR(MAX)"
+        return f"VARCHAR({max_len})"
+    elif dt in ('nvarchar', 'nchar'):
+        if max_len is None or str(max_len).upper() in ('MAX', '-1'):
+            return "NVARCHAR(MAX)"
+        return f"NVARCHAR({max_len})"
+    elif dt in ('varbinary', 'binary', 'image'):
+        if max_len is None or str(max_len).upper() in ('MAX', '-1'):
+            return "VARBINARY(MAX)"
+        return f"VARBINARY({max_len})"
+    elif dt in ('decimal', 'numeric'):
+        prec = col_meta.get("NumericPrecision") or 25
+        scale = col_meta.get("NumericScale") or 5
+        if prec == 0:
+            prec = 25
+        return f"DECIMAL({prec}, {scale})"
+    elif dt == 'float':
+        return "FLOAT"
+    elif dt in ('int', 'bigint', 'smallint', 'tinyint'):
+        return dt.upper()
+    elif dt in ('datetime', 'smalldatetime', 'datetime2'):
+        return "DATETIME"
+    elif dt == 'date':
+        return "DATE"
+    elif dt == 'bit':
+        return "BIT"
+    elif dt == 'uniqueidentifier':
+        return "UNIQUEIDENTIFIER"
+    elif dt in ('timestamp', 'rowversion'):
+        return "VARBINARY(8)"
+    else:
+        return "VARCHAR(MAX)"
 
 def normalize_server_address(server: str) -> str:
     if not server:
@@ -81,6 +162,10 @@ class EnterpriseSyncEngine:
         # Ring-buffer for activity logs (max 1000 items)
         self.activity_logs: List[ActivityLogItem] = []
         self._max_logs = 1000
+
+        # Living Schema Audit cache
+        self._audit_cache: Optional[List[Dict[str, Any]]] = None
+        self._audit_keys: Optional[set] = None
 
         # Unpause initially
         self._pause_event.set()
@@ -196,6 +281,50 @@ class EnterpriseSyncEngine:
             os.replace(temp_path, STATE_FILE_PATH)
         except Exception as e:
             pass
+
+    def _register_new_column_to_audit(self, table_name: str, col_meta: Dict[str, Any]):
+        """Mendaftarkan kolom baru hasil Self-Healing DDL ke database_schema_audit.json secara atomic"""
+        try:
+            if not os.path.exists(SCHEMA_AUDIT_PATH):
+                return
+
+            if self._audit_keys is None:
+                with open(SCHEMA_AUDIT_PATH, "r", encoding="utf-8") as f:
+                    self._audit_cache = json.load(f)
+                    self._audit_keys = {
+                        (item.get("TableName", "").lower(), item.get("ColumnName", "").lower())
+                        for item in self._audit_cache
+                    }
+
+            key = (table_name.lower(), col_meta.get("ColumnName", "").lower())
+            if key not in self._audit_keys:
+                audit_entry = {
+                    "TableName": table_name,
+                    "ColumnName": col_meta.get("ColumnName"),
+                    "DataType": col_meta.get("DataType", "varchar"),
+                    "NumericPrecision": col_meta.get("NumericPrecision", 0),
+                    "NumericScale": col_meta.get("NumericScale", 0),
+                    "MaxLength": str(col_meta.get("MaxLength", "MAX")),
+                    "IsNullable": col_meta.get("IsNullable", "YES"),
+                    "IsPrimaryKey": col_meta.get("IsPrimaryKey", "NO"),
+                    "IsUnique": col_meta.get("IsUnique", "NO"),
+                    "ReferencedTable": "-",
+                    "ReferencedColumn": "-"
+                }
+                self._audit_cache.append(audit_entry)
+                self._audit_keys.add(key)
+
+                temp_path = f"{SCHEMA_AUDIT_PATH}.tmp"
+                with open(temp_path, "w", encoding="utf-8") as f:
+                    json.dump(self._audit_cache, f, indent=2, ensure_ascii=False)
+                os.replace(temp_path, SCHEMA_AUDIT_PATH)
+                self.add_log(
+                    "INFO",
+                    f"📝 Living Schema Audit: Kolom [{table_name}].[{col_meta.get('ColumnName')}] berhasil dicatat ke database_schema_audit.json.",
+                    table_name=table_name
+                )
+        except Exception as e:
+            print(f"⚠️ [SyncEngine] Gagal mendaftarkan kolom baru ke schema audit: {e}")
 
     def add_log(self, level: str, message: str, company_name: Optional[str] = None, table_name: Optional[str] = None, inserts: int = 0, updates: int = 0, deletes: int = 0):
         with self._lock:
@@ -476,22 +605,27 @@ class EnterpriseSyncEngine:
 
     def _sync_single_node(self, config: Dict[str, Any]):
         comp_name = config.get("CompanyName", "UNKNOWN")
-        db_pusat = config.get("DatabasePusat", "")
-        db_lokal = config.get("DatabaseLokal", "")
-        server_pusat = config.get("ServerPusat", "")
-        server_lokal = config.get("ServerLokal", "")
+        # Dukungan dual istilah: Source/Target (Enterprise Standard) & Pusat/Lokal (Backward Compatibility)
+        db_source = config.get("DatabaseSource") or config.get("DatabasePusat", "")
+        db_target = config.get("DatabaseTarget") or config.get("DatabaseLokal", "")
+        server_source = config.get("ServerSource") or config.get("ServerPusat", "")
+        server_target = config.get("ServerTarget") or config.get("ServerLokal", "")
+        user_source = config.get("UserSource") or config.get("UserPusat", "")
+        pwd_source = config.get("PasswordSource") or config.get("PasswordPusat", "")
+        user_target = config.get("UserTarget") or config.get("UserLokal", "")
+        pwd_target = config.get("PasswordTarget") or config.get("PasswordLokal", "")
 
-        node_key = f"{comp_name} - {db_pusat} ({server_lokal})" if server_lokal else f"{comp_name} - {db_pusat}"
+        node_key = f"{comp_name} - {db_source} ({server_target})" if server_target else f"{comp_name} - {db_source}"
 
         with self._lock:
             if node_key not in self.metrics_by_company:
                 self.metrics_by_company[node_key] = {
                     "node_key": node_key,
                     "company_name": comp_name,
-                    "database_pusat": db_pusat,
-                    "database_lokal": db_lokal,
-                    "server_pusat": server_pusat,
-                    "server_lokal": server_lokal,
+                    "database_pusat": db_source,
+                    "database_lokal": db_target,
+                    "server_pusat": server_source,
+                    "server_lokal": server_target,
                     "total_inserts": 0,
                     "total_updates": 0,
                     "total_deletes": 0,
@@ -500,176 +634,254 @@ class EnterpriseSyncEngine:
                     "status": "SYNCING"
                 }
             self.metrics_by_company[node_key]["status"] = "SYNCING"
-            self.metrics_by_company[node_key]["server_pusat"] = server_pusat
-            self.metrics_by_company[node_key]["server_lokal"] = server_lokal
+            self.metrics_by_company[node_key]["server_pusat"] = server_source
+            self.metrics_by_company[node_key]["server_lokal"] = server_target
 
-        conn_pusat_str = get_connection_string(
-            config["ServerPusat"], db_pusat, config["UserPusat"], config["PasswordPusat"]
-        )
-        conn_lokal_str = get_connection_string(
-            config["ServerLokal"], db_lokal, config["UserLokal"], config["PasswordLokal"]
-        )
+        conn_source_str = get_connection_string(server_source, db_source, user_source, pwd_source)
+        conn_target_str = get_connection_string(server_target, db_target, user_target, pwd_target)
 
         node_inserts = 0
         node_updates = 0
         node_deletes = 0
+        successful_tables = 0
+        table_errors = 0
 
         try:
-            conn_pusat = pyodbc.connect(conn_pusat_str, timeout=5)
-            conn_pusat.add_output_converter(-155, handle_datetimeoffset)
-            conn_lokal = pyodbc.connect(conn_lokal_str, timeout=5)
+            conn_source = pyodbc.connect(conn_source_str, timeout=5)
+            conn_source.add_output_converter(-155, handle_datetimeoffset)
+            conn_target = pyodbc.connect(conn_target_str, timeout=5)
+            conn_target.add_output_converter(-155, handle_datetimeoffset)
 
-            cursor_pusat = conn_pusat.cursor()
-            cursor_lokal = conn_lokal.cursor()
+            cursor_source = conn_source.cursor()
+            cursor_target = conn_target.cursor()
 
-            cursor_pusat.execute("""
+            # Ambil semua tabel dasar dari server source (pusat)
+            cursor_source.execute("""
                 SELECT TABLE_NAME 
                 FROM INFORMATION_SCHEMA.TABLES 
                 WHERE TABLE_TYPE = 'BASE TABLE'
             """)
-            tables = [row.TABLE_NAME for row in cursor_pusat.fetchall()]
+            tables = [row.TABLE_NAME for row in cursor_source.fetchall()]
 
             for table in tables:
                 if self._stop_event.is_set():
                     break
                 self._pause_event.wait()
 
-                pk_col = get_primary_key(cursor_pusat, table)
-                columns = get_table_columns(cursor_pusat, table)
-
-                if not pk_col or not columns or pk_col not in columns:
-                    continue
-
-                col_list_str = ", ".join([f"[{c}]" for c in columns])
-
+                # PILAR 3: Per-Table Isolation (Isolasi setiap tabel dalam try-except tersendiri)
                 try:
-                    cursor_pusat.execute(f"SELECT {col_list_str} FROM [{table}]")
-                    pusat_rows = cursor_pusat.fetchall()
-                except Exception as err:
+                    # 1. Cek apakah tabel ada di target. Jika belum ada, lakukan Self-Healing Table Creation
+                    cursor_target.execute("""
+                        SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES 
+                        WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = ?
+                    """, table)
+                    target_table_exists = cursor_target.fetchone()[0] > 0
+
+                    pk_col = get_primary_key(cursor_source, table)
+                    source_col_details = get_table_columns_detail(cursor_source, table)
+                    source_cols = list(source_col_details.keys())
+
+                    if not pk_col or not source_cols or pk_col not in source_cols:
+                        continue
+
+                    if not target_table_exists:
+                        # Auto create table di target jika belum ada
+                        col_defs = []
+                        for c_name, c_meta in source_col_details.items():
+                            c_type = format_sql_column_type(c_meta)
+                            c_null = "NOT NULL" if c_name == pk_col else "NULL"
+                            col_defs.append(f"[{c_name}] {c_type} {c_null}")
+                        col_defs.append(f"PRIMARY KEY ([{pk_col}])")
+                        create_table_sql = f"CREATE TABLE [{table}] (\n    " + ",\n    ".join(col_defs) + "\n);"
+                        cursor_target.execute(create_table_sql)
+                        conn_target.commit()
+                        self.add_log("INFO", f"[{comp_name}] 🛠️ Self-Healing DDL: Tabel baru [{table}] otomatis dibuat di server target.", comp_name, table)
+                        for c_name, c_meta in source_col_details.items():
+                            self._register_new_column_to_audit(table, c_meta)
+
+                    # 2. PILAR 1: Self-Healing DDL (Pengecekan dan penambahan kolom yang kurang di target)
+                    target_cols = set(get_table_columns(cursor_target, table))
+                    missing_in_target = [c for c in source_cols if c not in target_cols]
+
+                    if missing_in_target:
+                        for missing_col in missing_in_target:
+                            col_meta = source_col_details[missing_col]
+                            col_sql_type = format_sql_column_type(col_meta)
+                            try:
+                                alter_sql = f"ALTER TABLE [{table}] ADD [{missing_col}] {col_sql_type} NULL;"
+                                cursor_target.execute(alter_sql)
+                                conn_target.commit()
+                                target_cols.add(missing_col)
+                                self.add_log(
+                                    "INFO",
+                                    f"[{comp_name}] 🛠️ Self-Healing DDL: Menambahkan kolom [{table}].[{missing_col}] ({col_sql_type}) ke target.",
+                                    comp_name,
+                                    table
+                                )
+                                self._register_new_column_to_audit(table, col_meta)
+                            except Exception as alt_err:
+                                self.add_log(
+                                    "WARNING",
+                                    f"[{comp_name}] Gagal menambah kolom [{table}].[{missing_col}]: {str(alt_err)[:120]}",
+                                    comp_name,
+                                    table
+                                )
+
+                    # 3. PILAR 2: Safe Column Intersection (Hanya sinkronisasi kolom yang terverifikasi ada di KEDUA sisi)
+                    sync_columns = [c for c in source_cols if c in target_cols]
+                    if not sync_columns or pk_col not in sync_columns:
+                        continue
+
+                    col_list_str = ", ".join([f"[{c}]" for c in sync_columns])
+
+                    cursor_source.execute(f"SELECT {col_list_str} FROM [{table}]")
+                    source_rows = cursor_source.fetchall()
+
+                    source_dict = {}
+                    for row in source_rows:
+                        row_dict = dict(zip(sync_columns, row))
+                        pk_val = row_dict[pk_col]
+                        source_dict[pk_val] = row_dict
+
+                    tbl_inserted = 0
+                    tbl_updated = 0
+                    tbl_deleted = 0
+
+                    # 4. INSERT & UPDATE
+                    for pk_val, row_dict in source_dict.items():
+                        cursor_target.execute(f"SELECT {col_list_str} FROM [{table}] WHERE [{pk_col}] = ?", pk_val)
+                        target_row = cursor_target.fetchone()
+
+                        if not target_row:
+                            placeholders = ", ".join(["?" for _ in sync_columns])
+                            insert_sql = f"INSERT INTO [{table}] ({col_list_str}) VALUES ({placeholders})"
+                            values = [row_dict[c] for c in sync_columns]
+                            try:
+                                cursor_target.execute(insert_sql, values)
+                                conn_target.commit()
+                                tbl_inserted += 1
+                            except Exception as ins_err:
+                                self.add_log("WARNING", f"Gagal insert [{table}] PK={pk_val}: {str(ins_err)[:120]}", comp_name, table)
+                        else:
+                            target_dict = dict(zip(sync_columns, target_row))
+                            changed_columns = []
+
+                            for col in sync_columns:
+                                if col == pk_col:
+                                    continue
+                                val_source = row_dict[col]
+                                val_target = target_dict[col]
+
+                                if isinstance(val_source, bytes):
+                                    val_source = val_source.hex()
+                                if isinstance(val_target, bytes):
+                                    val_target = val_target.hex()
+
+                                is_diff = False
+                                if isinstance(val_source, (int, float)) or hasattr(val_source, 'as_tuple'):
+                                    try:
+                                        if float(val_source) != float(val_target):
+                                            is_diff = True
+                                    except:
+                                        if str(val_source) != str(val_target):
+                                            is_diff = True
+                                elif type(val_source).__name__ in ['datetime', 'date']:
+                                    if str(val_source) != str(val_target):
+                                        is_diff = True
+                                elif str(val_source) != str(val_target):
+                                    is_diff = True
+
+                                if is_diff:
+                                    changed_columns.append(col)
+
+                            if changed_columns:
+                                set_clause = ", ".join([f"[{c}] = ?" for c in changed_columns])
+                                update_sql = f"UPDATE [{table}] SET {set_clause} WHERE [{pk_col}] = ?"
+                                update_values = [row_dict[c] for c in changed_columns]
+                                update_values.append(pk_val)
+                                try:
+                                    cursor_target.execute(update_sql, update_values)
+                                    conn_target.commit()
+                                    tbl_updated += 1
+                                except Exception as upd_err:
+                                    self.add_log("WARNING", f"Gagal update [{table}] PK={pk_val}: {str(upd_err)[:120]}", comp_name, table)
+
+                    # 5. DELETE
+                    cursor_target.execute(f"SELECT [{pk_col}] FROM [{table}]")
+                    target_pks = [row[0] for row in cursor_target.fetchall()]
+
+                    for t_pk in target_pks:
+                        if t_pk not in source_dict:
+                            try:
+                                cursor_target.execute(f"DELETE FROM [{table}] WHERE [{pk_col}] = ?", t_pk)
+                                conn_target.commit()
+                                tbl_deleted += 1
+                            except Exception as del_err:
+                                self.add_log("WARNING", f"Gagal delete [{table}] PK={t_pk}: {str(del_err)[:120]}", comp_name, table)
+
+                    successful_tables += 1
+
+                    # Catat log & update metrik realtime jika ada aktivitas DML
+                    if tbl_inserted > 0 or tbl_updated > 0 or tbl_deleted > 0:
+                        node_inserts += tbl_inserted
+                        node_updates += tbl_updated
+                        node_deletes += tbl_deleted
+                        self.add_log(
+                            "SUCCESS",
+                            f"📊 Tabel [{table}] tersinkronisasi: +{tbl_inserted} Ins | ~{tbl_updated} Upd | -{tbl_deleted} Del",
+                            comp_name,
+                            table,
+                            tbl_inserted,
+                            tbl_updated,
+                            tbl_deleted
+                        )
+
+                        # PILAR 3: Real-Time Metrics Saving (Simpan data transaksi secara berkala agar UI realtime)
+                        with self._lock:
+                            self.total_inserts += tbl_inserted
+                            self.total_updates += tbl_updated
+                            self.total_deletes += tbl_deleted
+                            c_met = self.metrics_by_company[node_key]
+                            c_met["total_inserts"] += tbl_inserted
+                            c_met["total_updates"] += tbl_updated
+                            c_met["total_deletes"] += tbl_deleted
+                            c_met["total_tables_synced"] = successful_tables
+                            c_met["last_sync_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            self._save_state()
+
+                except Exception as tbl_err:
+                    table_errors += 1
+                    self.add_log(
+                        "WARNING",
+                        f"[{comp_name}] Kendala sinkronisasi pada tabel [{table}]: {str(tbl_err)[:150]}",
+                        comp_name,
+                        table
+                    )
                     continue
 
-                pusat_dict = {}
-                for row in pusat_rows:
-                    row_dict = dict(zip(columns, row))
-                    pk_val = row_dict[pk_col]
-                    pusat_dict[pk_val] = row_dict
+            cursor_source.close()
+            cursor_target.close()
+            conn_source.close()
+            conn_target.close()
 
-                tbl_inserted = 0
-                tbl_updated = 0
-                tbl_deleted = 0
-
-                # 1. INSERT & UPDATE
-                for pk_val, row_dict in pusat_dict.items():
-                    cursor_lokal.execute(f"SELECT {col_list_str} FROM [{table}] WHERE [{pk_col}] = ?", pk_val)
-                    lokal_row = cursor_lokal.fetchone()
-
-                    if not lokal_row:
-                        placeholders = ", ".join(["?" for _ in columns])
-                        insert_sql = f"INSERT INTO [{table}] ({col_list_str}) VALUES ({placeholders})"
-                        values = [row_dict[c] for c in columns]
-                        try:
-                            cursor_lokal.execute(insert_sql, values)
-                            conn_lokal.commit()
-                            tbl_inserted += 1
-                        except Exception as e:
-                            # Log jika gagal insert
-                            self.add_log("WARNING", f"Gagal insert [{table}] PK={pk_val}: {str(e)[:120]}", comp_name, table)
-                    else:
-                        lokal_dict = dict(zip(columns, lokal_row))
-                        changed_columns = []
-
-                        for col in columns:
-                            if col == pk_col:
-                                continue
-                            val_pusat = row_dict[col]
-                            val_lokal = lokal_dict[col]
-
-                            if isinstance(val_pusat, bytes):
-                                val_pusat = val_pusat.hex()
-                            if isinstance(val_lokal, bytes):
-                                val_lokal = val_lokal.hex()
-
-                            is_diff = False
-                            if isinstance(val_pusat, (int, float)) or hasattr(val_pusat, 'as_tuple'):
-                                try:
-                                    if float(val_pusat) != float(val_lokal):
-                                        is_diff = True
-                                except:
-                                    if str(val_pusat) != str(val_lokal):
-                                        is_diff = True
-                            elif type(val_pusat).__name__ in ['datetime', 'date']:
-                                if str(val_pusat) != str(val_lokal):
-                                    is_diff = True
-                            elif str(val_pusat) != str(val_lokal):
-                                is_diff = True
-
-                            if is_diff:
-                                changed_columns.append(col)
-
-                        if changed_columns:
-                            set_clause = ", ".join([f"[{c}] = ?" for c in changed_columns])
-                            update_sql = f"UPDATE [{table}] SET {set_clause} WHERE [{pk_col}] = ?"
-                            update_values = [row_dict[c] for c in changed_columns]
-                            update_values.append(pk_val)
-                            try:
-                                cursor_lokal.execute(update_sql, update_values)
-                                conn_lokal.commit()
-                                tbl_updated += 1
-                            except Exception as e:
-                                self.add_log("WARNING", f"Gagal update [{table}] PK={pk_val}: {str(e)[:120]}", comp_name, table)
-
-                # 2. DELETE
-                cursor_lokal.execute(f"SELECT [{pk_col}] FROM [{table}]")
-                lokal_pks = [row[0] for row in cursor_lokal.fetchall()]
-
-                for l_pk in lokal_pks:
-                    if l_pk not in pusat_dict:
-                        try:
-                            cursor_lokal.execute(f"DELETE FROM [{table}] WHERE [{pk_col}] = ?", l_pk)
-                            conn_lokal.commit()
-                            tbl_deleted += 1
-                        except Exception as e:
-                            self.add_log("WARNING", f"Gagal delete [{table}] PK={l_pk}: {str(e)[:120]}", comp_name, table)
-
-                # Catat log jika ada aktivitas DML
-                if tbl_inserted > 0 or tbl_updated > 0 or tbl_deleted > 0:
-                    node_inserts += tbl_inserted
-                    node_updates += tbl_updated
-                    node_deletes += tbl_deleted
-                    self.add_log(
-                        "SUCCESS",
-                        f"📊 Tabel [{table}] tersinkronisasi: +{tbl_inserted} Ins | ~{tbl_updated} Upd | -{tbl_deleted} Del",
-                        comp_name,
-                        table,
-                        tbl_inserted,
-                        tbl_updated,
-                        tbl_deleted
-                    )
-
-            cursor_pusat.close()
-            cursor_lokal.close()
-            conn_pusat.close()
-            conn_lokal.close()
-
-            # Update metrics global & per database node
+            # Status akhir node setelah seluruh tabel selesai diproses
             with self._lock:
-                self.total_inserts += node_inserts
-                self.total_updates += node_updates
-                self.total_deletes += node_deletes
                 c_met = self.metrics_by_company[node_key]
-                c_met["total_inserts"] += node_inserts
-                c_met["total_updates"] += node_updates
-                c_met["total_deletes"] += node_deletes
-                c_met["total_tables_synced"] = len(tables)
+                c_met["total_tables_synced"] = successful_tables
                 c_met["last_sync_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                c_met["status"] = "COMPLETED"
+                if table_errors > 0 and successful_tables == 0:
+                    c_met["status"] = "FAILED"
+                elif table_errors > 0:
+                    c_met["status"] = "WARNING"
+                else:
+                    c_met["status"] = "COMPLETED"
                 self._save_state()
 
         except Exception as ex:
             with self._lock:
                 if node_key in self.metrics_by_company:
                     self.metrics_by_company[node_key]["status"] = "FAILED"
-            self.add_log("ERROR", f"[{node_key}] Error koneksi/sinkronisasi: {str(ex)}", comp_name, db_pusat)
+            self.add_log("ERROR", f"[{node_key}] Error koneksi/sinkronisasi: {str(ex)}", comp_name, db_source)
 
 # Singleton global instance
 sync_engine = EnterpriseSyncEngine()
