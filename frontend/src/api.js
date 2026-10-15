@@ -59,11 +59,18 @@ export const api = {
     return res.json();
   },
 
-  async testConnection(server, database, user, password) {
+  async testConnection(server, database, user, password, nodeId = null, role = 'pusat') {
     const res = await fetch(`${API_BASE}/api/configs/test-connection`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ server, database, user, password })
+      body: JSON.stringify({ 
+        server, 
+        database, 
+        user, 
+        password,
+        node_id: nodeId,
+        role: role
+      })
     });
     if (!res.ok) throw new Error('Pengujian koneksi gagal dijalankan');
     return res.json();

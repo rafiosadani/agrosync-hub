@@ -64,11 +64,17 @@ def delete_config(node_id: int):
 @router.post("/test-connection", response_model=ConnectionTestResponse)
 def test_connection(payload: ConnectionTestRequest):
     """Menguji koneksi ke instance SQL Server secara real-time dan mengukur latensi."""
+    pwd = payload.password
+    if (not pwd or pwd == "••••••••") and payload.node_id is not None:
+        cfg = ConfigManager.get_by_id(payload.node_id)
+        if cfg:
+            pwd = cfg.get("PasswordPusat" if payload.role == "pusat" else "PasswordLokal", "")
+
     success, latency, msg, ver, srv_online, db_exists = test_sql_connection(
         server=payload.server,
         database=payload.database,
         user=payload.user,
-        password=payload.password
+        password=pwd
     )
     return ConnectionTestResponse(
         success=success,

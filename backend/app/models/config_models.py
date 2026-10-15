@@ -40,6 +40,8 @@ class ConnectionTestRequest(BaseModel):
     database: str
     user: str
     password: str
+    node_id: Optional[int] = None
+    role: Optional[str] = "pusat"
 
 class ConnectionTestResponse(BaseModel):
     success: bool

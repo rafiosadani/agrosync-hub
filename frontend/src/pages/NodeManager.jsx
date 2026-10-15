@@ -33,7 +33,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
   useEffect(() => {
     api.getNetworkInfo().then(info => {
-      if (info && info.status === 'success') {
+      if (info && (info.local_ip || info.status === 'success')) {
         setNetworkInfo(info);
       }
     }).catch(err => {
@@ -124,7 +124,9 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         formData.ServerPusat,
         formData.DatabasePusat,
         formData.UserPusat,
-        formData.PasswordPusat || '••••••••'
+        formData.PasswordPusat || '',
+        editingNodeId,
+        'pusat'
       );
       setResultPusat(res);
       if (res.success) {
@@ -152,7 +154,9 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         formData.ServerLokal,
         formData.DatabaseLokal,
         formData.UserLokal,
-        formData.PasswordLokal || '••••••••'
+        formData.PasswordLokal || '',
+        editingNodeId,
+        'lokal'
       );
       setResultLokal(res);
       if (res.success) {
@@ -486,6 +490,47 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   onChange={(e) => setFormData({ ...formData, ServerPusat: e.target.value })}
                   placeholder="localhost,1433 atau 192.168.1.100,1433"
                 />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  <span>Pilihan Cepat Mentor:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const port = formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
+                      setFormData({ ...formData, ServerPusat: `LAPTOP-IVSFKQ1T,${port}` });
+                    }}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#38bdf8',
+                      fontSize: '0.66rem',
+                      padding: '2px 6px',
+                      cursor: 'pointer'
+                    }}
+                    title="Gunakan Hostname Laptop Mentor"
+                  >
+                    Hostname: LAPTOP-IVSFKQ1T
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const port = formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
+                      setFormData({ ...formData, ServerPusat: `192.168.2.126,${port}` });
+                    }}
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#34d399',
+                      fontSize: '0.66rem',
+                      padding: '2px 6px',
+                      cursor: 'pointer'
+                    }}
+                    title="Gunakan IP Laptop Mentor"
+                  >
+                    IP: 192.168.2.126
+                  </button>
+                </div>
               </div>
 
               <div className="form-group">

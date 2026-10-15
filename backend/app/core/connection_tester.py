@@ -4,18 +4,55 @@ from typing import Tuple, Optional
 import pyodbc
 from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS
 
+import socket
+
 def normalize_server_address(server: str) -> str:
     """
-    Di macOS/Linux, host 'localhost' sering di-resolve ke IPv6 (::1).
-    Jika instance SQL Server / Docker hanya listen di IPv4 (0.0.0.0), koneksi akan
-    mengalami TCP SYN delay (~2 detik). Normalisasi ke 127.0.0.1 memastikan koneksi
-    langsung IPv4 ultra cepat tanpa resiko timeout.
+    Normalisasi alamat server SQL Server:
+    1. 'localhost' -> '127.0.0.1' (menghindari delay IPv6 ::1 pada macOS/Linux).
+    2. Hostname Windows tunggal tanpa dot (misal 'LAPTOP-IVSFKQ1T') -> dicoba resolve as-is,
+       jika gagal, otomatis dicoba dengan suffix '.local' (mDNS Bonjour di macOS/Linux).
     """
     if not server:
         return server
     s = server.strip()
     if s.lower().startswith("localhost"):
         return s.replace("localhost", "127.0.0.1").replace("LOCALHOST", "127.0.0.1")
+
+    # Pisahkan host dan port
+    host = s
+    port_part = ""
+    if "," in s:
+        parts = s.split(",", 1)
+        host = parts[0].strip()
+        port_part = f",{parts[1].strip()}"
+    elif ":" in s and not s.startswith("["):
+        parts = s.split(":")
+        if len(parts) == 2 and parts[1].isdigit():
+            host = parts[0].strip()
+            port_part = f",{parts[1].strip()}"
+
+    # Cek apakah host adalah IP address numerik
+    try:
+        socket.inet_aton(host)
+        return s
+    except Exception:
+        pass
+
+    # Jika hostname tanpa dot (misal 'LAPTOP-IVSFKQ1T')
+    if "." not in host:
+        try:
+            socket.gethostbyname(host)
+            return s
+        except Exception:
+            # Gagal resolve nama NetBIOS standar di Unix/macOS, coba mDNS (.local)
+            try:
+                candidate = f"{host}.local"
+                socket.gethostbyname(candidate)
+                return f"{candidate}{port_part}"
+            except Exception:
+                pass
+
     return s
 
 def test_sql_connection(server: str, database: str, user: str, password: str, timeout: int = 5) -> Tuple[bool, float, str, Optional[str], bool, bool]:

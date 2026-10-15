@@ -1,9 +1,20 @@
-import React from 'react';
-import { Server, ArrowRight, CheckCircle2, XCircle, AlertCircle, Wifi } from 'lucide-react';
+import React, { useState } from 'react';
+import { Server, ArrowRight, CheckCircle2, XCircle, AlertCircle, Wifi, Copy, Check } from 'lucide-react';
+import { useToast } from './Toast';
 
 export default function NodeHealthCard({ node, onEdit }) {
+  const toast = useToast();
+  const [copiedKey, setCopiedKey] = useState(null);
   const isHealthy = node.overall_status === 'HEALTHY';
   const isDegraded = node.overall_status === 'DEGRADED';
+
+  const handleCopy = (text, key, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Disalin ke Clipboard', `${label}: ${text}`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   return (
     <div className="card" style={{ padding: '20px', position: 'relative' }}>
@@ -63,18 +74,40 @@ export default function NodeHealthCard({ node, onEdit }) {
             {node.database_pusat}
           </div>
           <div style={{
-            fontFamily: 'monospace',
-            fontSize: '0.74rem',
-            color: '#38bdf8',
-            background: 'rgba(56, 189, 248, 0.12)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            marginTop: '4px',
-            wordBreak: 'break-all',
-            width: 'fit-content'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginTop: '4px'
           }}>
-            {node.server_pusat || 'localhost,1433'}
+            <div style={{
+              fontFamily: 'monospace',
+              fontSize: '0.74rem',
+              color: '#38bdf8',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              wordBreak: 'break-all'
+            }}>
+              {node.server_pusat || 'localhost,1433'}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(node.server_pusat || 'localhost,1433', `pusat-${node.id}`, 'Alamat Server Pusat')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'color 0.15s ease'
+              }}
+              title="Salin Alamat Server Pusat"
+            >
+              {copiedKey === `pusat-${node.id}` ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
             {node.pusat_online ? (
@@ -106,18 +139,40 @@ export default function NodeHealthCard({ node, onEdit }) {
             {node.database_lokal}
           </div>
           <div style={{
-            fontFamily: 'monospace',
-            fontSize: '0.74rem',
-            color: '#34d399',
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            marginTop: '4px',
-            wordBreak: 'break-all',
-            width: 'fit-content'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginTop: '4px'
           }}>
-            {node.server_lokal || 'Port Lokal'}
+            <div style={{
+              fontFamily: 'monospace',
+              fontSize: '0.74rem',
+              color: '#34d399',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              wordBreak: 'break-all'
+            }}>
+              {node.server_lokal || 'Port Lokal'}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(node.server_lokal || '127.0.0.1,1435', `lokal-${node.id}`, 'Alamat Server Lokal')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'color 0.15s ease'
+              }}
+              title="Salin Alamat Server Lokal"
+            >
+              {copiedKey === `lokal-${node.id}` ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
             {node.lokal_online ? (

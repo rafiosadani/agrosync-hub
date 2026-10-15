@@ -28,6 +28,7 @@ def get_local_network_info() -> Dict[str, Any]:
     subnet_cidr = f"{subnet_prefix}.0/24"
 
     return {
+        "status": "success",
         "local_ip": local_ip,
         "hostname": hostname,
         "local_hostname": local_hostname,
@@ -87,8 +88,47 @@ def scan_subnet_sql_servers(subnet_prefix: Optional[str] = None, port: int = 143
 
     # Cocokkan dengan konfigurasi database node yang ada di sync_config.json
     configs = ConfigManager.get_all_raw()
+    local_ip = net_info["local_ip"]
+    local_hostname = net_info["local_hostname"]
+
     for dev in found_devices:
         dev_ip = dev["ip"]
+
+        # 1. Jika ini laptop lokal pengguna
+        if dev_ip == local_ip:
+            dev["hostname"] = net_info["hostname"]
+            dev["mdns_hostname"] = local_hostname
+        elif not dev.get("hostname"):
+            # 2. Cek apakah ada hostname di sync_config yang me-resolve ke IP ini
+            for cfg in configs:
+                for srv_val in (cfg.get("ServerPusat", ""), cfg.get("ServerLokal", "")):
+                    host_part = srv_val.split(",")[0].split(":")[0].strip()
+                    if host_part and host_part != dev_ip and host_part != "localhost" and not host_part.startswith("127."):
+                        try:
+                            norm_host = host_part if "." in host_part else f"{host_part}.local"
+                            if socket.gethostbyname(norm_host) == dev_ip:
+                                dev["hostname"] = host_part
+                                dev["mdns_hostname"] = norm_host
+                                break
+                        except Exception:
+                            pass
+                if dev.get("hostname"):
+                    break
+
+        if not dev.get("hostname"):
+            for cand in ("LAPTOP-IVSFKQ1T.local",):
+                try:
+                    if socket.gethostbyname(cand) == dev_ip:
+                        dev["hostname"] = cand.replace(".local", "")
+                        dev["mdns_hostname"] = cand
+                        break
+                except Exception:
+                    pass
+
+        if dev.get("hostname") and not dev.get("mdns_hostname"):
+            h = dev["hostname"]
+            dev["mdns_hostname"] = h if h.endswith(".local") else f"{h}.local"
+
         for idx, cfg in enumerate(configs):
             comp = cfg.get("CompanyName", "")
             db_p = cfg.get("DatabasePusat", "")
@@ -96,8 +136,8 @@ def scan_subnet_sql_servers(subnet_prefix: Optional[str] = None, port: int = 143
             srv_l = cfg.get("ServerLokal", "")
 
             # Cek apakah device ini adalah server pusat atau server lokal yang sedang terkonfigurasi
-            is_pusat = dev_ip in srv_p or (dev["hostname"] and dev["hostname"] in srv_p)
-            is_lokal = dev_ip in srv_l or (dev["hostname"] and dev["hostname"] in srv_l)
+            is_pusat = dev_ip in srv_p or (dev.get("hostname") and dev["hostname"] in srv_p) or (dev.get("mdns_hostname") and dev["mdns_hostname"] in srv_p)
+            is_lokal = dev_ip in srv_l or (dev.get("hostname") and dev["hostname"] in srv_l) or (dev.get("mdns_hostname") and dev["mdns_hostname"] in srv_l)
 
             if is_pusat or is_lokal:
                 dev["matched_nodes"].append({

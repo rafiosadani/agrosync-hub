@@ -40,7 +40,7 @@ export default function Overview({
 
   useEffect(() => {
     api.getNetworkInfo().then(info => {
-      if (info && info.status === 'success') {
+      if (info && (info.local_ip || info.status === 'success')) {
         setNetworkInfo(info);
       }
     }).catch(err => {

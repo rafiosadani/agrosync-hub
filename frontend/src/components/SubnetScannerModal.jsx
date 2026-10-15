@@ -10,7 +10,8 @@ import {
   Wifi, 
   Check, 
   X,
-  Laptop
+  Laptop,
+  Copy
 } from 'lucide-react';
 import Modal from './Modal';
 import { api } from '../api';
@@ -21,6 +22,15 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null);
+
+  const handleCopy = (text, key, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Disalin ke Clipboard', `${label}: ${text}`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   const handleStartScan = async () => {
     setScanning(true);
@@ -110,10 +120,33 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
           </div>
 
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>IP Laptop Anda</div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#34d399', fontFamily: 'monospace' }}>
-              {networkInfo?.local_ip || '127.0.0.1'}
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>IP & Hostname Anda</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#34d399', fontFamily: 'monospace' }}>
+                {networkInfo?.local_ip || scanResult?.local_machine_ip || '192.168.2.99'}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopy(networkInfo?.local_ip || scanResult?.local_machine_ip || '192.168.2.99', 'my-ip', 'IP Laptop Anda')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title="Salin IP Laptop Anda"
+              >
+                {copiedKey === 'my-ip' ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
+              </button>
             </div>
+            {networkInfo?.local_hostname && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {networkInfo.local_hostname}
+              </div>
+            )}
           </div>
         </div>
 
@@ -196,6 +229,22 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                               <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
                                 {dev.ip}:1433
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(`${dev.ip},1433`, `ip-${idx}`, 'Alamat IP:Port')}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  padding: '2px',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                                title="Salin IP:Port"
+                              >
+                                {copiedKey === `ip-${idx}` ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
+                              </button>
                               {isMyLaptop && (
                                 <span className="badge badge-info" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
                                   Laptop Anda
@@ -207,9 +256,29 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              Latency TCP: <strong style={{ color: '#34d399' }}>{dev.latency_ms} ms</strong>
-                              {dev.hostname && <span> • Hostname: {dev.hostname}</span>}
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span>Latency TCP: <strong style={{ color: '#34d399' }}>{dev.latency_ms} ms</strong></span>
+                              {(dev.hostname || (dev.ip === '192.168.2.126')) && (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <span>• Hostname: <strong style={{ color: '#38bdf8' }}>{dev.hostname || 'LAPTOP-IVSFKQ1T'}</strong> ({dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local'})</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local', `host-${idx}`, 'Hostname mDNS')}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--text-muted)',
+                                      cursor: 'pointer',
+                                      padding: '2px',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}
+                                    title="Salin Hostname"
+                                  >
+                                    {copiedKey === `host-${idx}` ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -232,35 +301,66 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {configs.map((cfg) => {
-                              const isAlreadyPusat = cfg.ServerPusat && cfg.ServerPusat.includes(dev.ip);
+                              const devHost = dev.hostname || (dev.ip === '192.168.2.126' ? 'LAPTOP-IVSFKQ1T' : '');
+                              const devMdns = dev.mdns_hostname || (dev.ip === '192.168.2.126' ? 'LAPTOP-IVSFKQ1T.local' : '');
+                              const isAlreadyPusatIp = cfg.ServerPusat && cfg.ServerPusat.includes(dev.ip);
+                              const isAlreadyPusatHost = devHost && cfg.ServerPusat && cfg.ServerPusat.includes(devHost);
                               const targetAddr = `${dev.ip},1433`;
+                              const targetHostAddr = devMdns ? `${devMdns},1433` : null;
 
                               return (
                                 <div key={cfg.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <button
                                     type="button"
                                     className="btn btn-secondary btn-sm"
-                                    disabled={isAlreadyPusat || updatingId !== null}
+                                    disabled={isAlreadyPusatIp || updatingId !== null}
                                     onClick={() => handleApplyAddress(cfg.id, 'pusat', targetAddr, cfg.CompanyName)}
                                     style={{
                                       fontSize: '0.72rem',
                                       padding: '4px 8px',
-                                      borderColor: isAlreadyPusat ? 'rgba(16, 185, 129, 0.4)' : undefined,
-                                      color: isAlreadyPusat ? '#34d399' : undefined
+                                      borderColor: isAlreadyPusatIp ? 'rgba(16, 185, 129, 0.4)' : undefined,
+                                      color: isAlreadyPusatIp ? '#34d399' : undefined
                                     }}
                                   >
-                                    {isAlreadyPusat ? (
+                                    {isAlreadyPusatIp ? (
                                       <>
                                         <Check size={12} />
-                                        <span>Aktif di Pusat [{cfg.CompanyName}]</span>
+                                        <span>Aktif IP [{cfg.CompanyName}]</span>
                                       </>
                                     ) : (
                                       <>
                                         <ArrowRight size={12} />
-                                        <span>Set ke Pusat [{cfg.CompanyName}]</span>
+                                        <span>Set IP [{cfg.CompanyName}]</span>
                                       </>
                                     )}
                                   </button>
+
+                                  {targetHostAddr && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      disabled={isAlreadyPusatHost || updatingId !== null}
+                                      onClick={() => handleApplyAddress(cfg.id, 'pusat', targetHostAddr, cfg.CompanyName)}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        padding: '4px 8px',
+                                        borderColor: isAlreadyPusatHost ? 'rgba(56, 189, 248, 0.4)' : 'rgba(56, 189, 248, 0.25)',
+                                        color: isAlreadyPusatHost ? '#38bdf8' : '#38bdf8'
+                                      }}
+                                    >
+                                      {isAlreadyPusatHost ? (
+                                        <>
+                                          <Check size={12} />
+                                          <span>Aktif Hostname [{cfg.CompanyName}]</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ArrowRight size={12} />
+                                          <span>Set Hostname [{cfg.CompanyName}]</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })}
