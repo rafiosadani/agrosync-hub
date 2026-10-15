@@ -1,11 +1,14 @@
 import time
 from fastapi import APIRouter, Query
 from typing import List, Optional
+from pydantic import BaseModel, Field
 from concurrent.futures import ThreadPoolExecutor
 from ...models.metrics_models import OverallSystemHealth, NodeHealth
+from ...models.config_models import DatabaseNodeUpdate
 from ...core.config_manager import ConfigManager
 from ...core.sync_engine import sync_engine
 from ...core.connection_tester import test_sql_connection
+from ...core.subnet_scanner import get_local_network_info, scan_subnet_sql_servers
 
 router = APIRouter(prefix="/api/health", tags=["System Health"])
 
@@ -91,3 +94,52 @@ def get_system_health(force: bool = Query(False, description="Paksa cek koneksi 
     _last_health_check_time = now
 
     return _health_cache
+
+class SubnetScanRequest(BaseModel):
+    subnet_prefix: Optional[str] = None
+    port: int = Field(1433, description="Port target SQL Server, default 1433")
+
+class UpdateNodeAddressRequest(BaseModel):
+    node_id: int
+    role: str = Field(..., description="'pusat' atau 'lokal'")
+    new_address: str = Field(..., description="Alamat host baru, misal 192.168.2.145,1433 atau LAPTOP-MENTOR,1433")
+
+@router.get("/network-info")
+def get_network_info_endpoint():
+    """Mendapatkan IP LAN aktif, Hostname, dan Subnet laptop pengguna saat ini secara instan"""
+    return get_local_network_info()
+
+@router.post("/scan-subnet")
+def scan_subnet_endpoint(req: Optional[SubnetScanRequest] = None):
+    """
+    Memindai seluruh subnet (/24) untuk mendeteksi instance SQL Server port 1433 yang aktif.
+    Selesai dalam 1-2 detik secara multi-threaded.
+    """
+    prefix = req.subnet_prefix if req else None
+    port = req.port if req and req.port else 1433
+    return scan_subnet_sql_servers(subnet_prefix=prefix, port=port)
+
+@router.post("/update-node-address")
+def update_node_address_endpoint(req: UpdateNodeAddressRequest):
+    """Memperbarui alamat ServerPusat atau ServerLokal pada node tertentu hasil auto-scan"""
+    global _health_cache
+    _health_cache = None  # Reset cache agar health check langsung live
+
+    updates = DatabaseNodeUpdate()
+    if req.role.lower() == "pusat":
+        updates.ServerPusat = req.new_address
+    elif req.role.lower() == "lokal":
+        updates.ServerLokal = req.new_address
+    else:
+        raise ValueError("Role harus bernilai 'pusat' atau 'lokal'.")
+
+    updated_node = ConfigManager.update_node(req.node_id, updates)
+    sync_engine.add_log(
+        "INFO",
+        f"Alamat {req.role.upper()} untuk node [{updated_node.CompanyName}] diperbarui ke: {req.new_address}"
+    )
+    return {
+        "success": True,
+        "message": f"Alamat {req.role.upper()} untuk [{updated_node.CompanyName}] berhasil diperbarui.",
+        "node": updated_node
+    }

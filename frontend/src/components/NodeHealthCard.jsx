@@ -59,17 +59,31 @@ export default function NodeHealthCard({ node, onEdit }) {
               Server Pusat
             </span>
           </div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {node.database_pusat}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+          <div style={{
+            fontFamily: 'monospace',
+            fontSize: '0.74rem',
+            color: '#38bdf8',
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            marginTop: '4px',
+            wordBreak: 'break-all',
+            width: 'fit-content'
+          }}>
+            {node.server_pusat || 'localhost,1433'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
             {node.pusat_online ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#34d399' }}>
-                <CheckCircle2 size={12} /> {node.pusat_latency_ms} ms
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>
+                <CheckCircle2 size={13} /> {node.pusat_latency_ms} ms
               </span>
             ) : (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#fb7185' }}>
-                <XCircle size={12} /> Offline
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#fb7185', fontWeight: 600 }}>
+                <XCircle size={13} /> Offline
               </span>
             )}
           </div>
@@ -88,17 +102,31 @@ export default function NodeHealthCard({ node, onEdit }) {
               Server Lokal
             </span>
           </div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {node.database_lokal}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+          <div style={{
+            fontFamily: 'monospace',
+            fontSize: '0.74rem',
+            color: '#34d399',
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            marginTop: '4px',
+            wordBreak: 'break-all',
+            width: 'fit-content'
+          }}>
+            {node.server_lokal || 'Port Lokal'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
             {node.lokal_online ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#34d399' }}>
-                <CheckCircle2 size={12} /> {node.lokal_latency_ms} ms
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>
+                <CheckCircle2 size={13} /> {node.lokal_latency_ms} ms
               </span>
             ) : (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#fb7185' }}>
-                <XCircle size={12} /> Offline
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#fb7185', fontWeight: 600 }}>
+                <XCircle size={13} /> Offline
               </span>
             )}
           </div>

@@ -169,5 +169,35 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/migration/run`, { method: 'POST' });
     if (!res.ok) throw new Error('Migrasi gagal dijalankan');
     return res.json();
+  },
+
+  // Network Discovery & Subnet Scanner
+  async getNetworkInfo() {
+    const res = await fetch(`${API_BASE}/api/health/network-info`);
+    if (!res.ok) throw new Error('Gagal mengambil info jaringan lokal');
+    return res.json();
+  },
+
+  async scanSubnet(params = {}) {
+    const res = await fetch(`${API_BASE}/api/health/scan-subnet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+    if (!res.ok) throw new Error('Gagal memindai subnet jaringan');
+    return res.json();
+  },
+
+  async updateNodeAddress(data) {
+    const res = await fetch(`${API_BASE}/api/health/update-node-address`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Gagal memperbarui alamat node');
+    }
+    return res.json();
   }
 };

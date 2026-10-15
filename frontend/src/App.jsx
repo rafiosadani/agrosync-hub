@@ -105,6 +105,7 @@ export default function App() {
               systemHealth={systemHealth}
               metricsSummary={metricsSummary}
               companyMetrics={companyMetrics}
+              configs={configs}
               recentLogs={recentLogs}
               onNavigateToNodes={() => setCurrentTab('nodes')}
               onNavigateToLogs={() => setCurrentTab('logs')}

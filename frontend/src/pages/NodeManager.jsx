@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Edit2, 
@@ -12,9 +12,12 @@ import {
   ShieldCheck, 
   HelpCircle,
   Database,
-  AlertTriangle
+  AlertTriangle,
+  Radar,
+  Wifi
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import SubnetScannerModal from '../components/SubnetScannerModal';
 import { api } from '../api';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
@@ -25,6 +28,18 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [revealedPasswords, setRevealedPasswords] = useState({});
+  const [networkInfo, setNetworkInfo] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  useEffect(() => {
+    api.getNetworkInfo().then(info => {
+      if (info && info.status === 'success') {
+        setNetworkInfo(info);
+      }
+    }).catch(err => {
+      console.debug("Gagal memuat network info:", err);
+    });
+  }, []);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -247,10 +262,16 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={handleOpenAddModal}>
-          <Plus size={16} />
-          <span>Tambah Node Database</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" onClick={() => setIsScannerOpen(true)}>
+            <Radar size={15} />
+            <span>Scan WiFi</span>
+          </button>
+          <button className="btn btn-primary" onClick={handleOpenAddModal}>
+            <Plus size={16} />
+            <span>Tambah Node Database</span>
+          </button>
+        </div>
       </div>
 
       {/* Nodes Table */}
@@ -435,7 +456,28 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <label className="form-label">Host & Port Server Pusat</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Host & Port Server Pusat</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#38bdf8',
+                      fontSize: '0.68rem',
+                      padding: '2px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Radar size={11} />
+                    <span>Scan IP Subnet</span>
+                  </button>
+                </div>
                 <input
                   type="text"
                   className="form-input"
@@ -579,7 +621,53 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <label className="form-label">Host & Port Server Lokal</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Host & Port Server Lokal</label>
+                  {networkInfo && (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = formData.ServerLokal || '';
+                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1435');
+                          setFormData({ ...formData, ServerLokal: `${networkInfo.local_ip},${port}` });
+                        }}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#34d399',
+                          fontSize: '0.68rem',
+                          padding: '2px 8px',
+                          cursor: 'pointer'
+                        }}
+                        title={`Gunakan IP Laptop ini: ${networkInfo.local_ip}`}
+                      >
+                        IP: {networkInfo.local_ip}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = formData.ServerLokal || '';
+                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1435');
+                          setFormData({ ...formData, ServerLokal: `${networkInfo.local_hostname},${port}` });
+                        }}
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#38bdf8',
+                          fontSize: '0.68rem',
+                          padding: '2px 8px',
+                          cursor: 'pointer'
+                        }}
+                        title={`Gunakan Hostname Laptop: ${networkInfo.local_hostname}`}
+                      >
+                        Hostname
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <input
                   type="text"
                   className="form-input"
@@ -665,6 +753,15 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
           </div>
         </form>
       </Modal>
+
+      {/* Subnet Scanner Modal */}
+      <SubnetScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        networkInfo={networkInfo}
+        configs={configs}
+        onNodeUpdated={onRefreshConfigs}
+      />
     </div>
   );
 }

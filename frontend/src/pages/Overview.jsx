@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PlusCircle, 
   RefreshCw, 
@@ -11,10 +11,14 @@ import {
   TrendingUp,
   Layers,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  Wifi,
+  Radar,
+  Search
 } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
+import SubnetScannerModal from '../components/SubnetScannerModal';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -23,6 +27,7 @@ export default function Overview({
   systemHealth, 
   metricsSummary, 
   companyMetrics, 
+  configs,
   recentLogs, 
   onNavigateToNodes,
   onNavigateToLogs,
@@ -30,6 +35,18 @@ export default function Overview({
 }) {
   const toast = useToast();
   const confirm = useConfirm();
+  const [networkInfo, setNetworkInfo] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  useEffect(() => {
+    api.getNetworkInfo().then(info => {
+      if (info && info.status === 'success') {
+        setNetworkInfo(info);
+      }
+    }).catch(err => {
+      console.debug("Gagal memuat network info:", err);
+    });
+  }, []);
 
   // Daftar database node untuk metrik: prioritaskan companyMetrics, atau fallback ke systemHealth.nodes
   const displayNodes = (companyMetrics && companyMetrics.length > 0)
@@ -113,7 +130,27 @@ export default function Overview({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {networkInfo && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.8rem',
+              color: '#38bdf8'
+            }}>
+              <Wifi size={14} />
+              <span>Host Lokal: <strong>{networkInfo.local_ip}</strong> <span style={{ color: 'var(--text-muted)' }}>({networkInfo.local_hostname})</span></span>
+            </div>
+          )}
+          <button className="btn btn-secondary btn-sm" onClick={() => setIsScannerOpen(true)}>
+            <Radar size={13} />
+            <span>Scan SQL Server di WiFi</span>
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={onNavigateToNodes}>
             <Database size={13} />
             <span>Kelola {systemHealth?.total_nodes || 0} Node Database</span>
@@ -308,13 +345,23 @@ export default function Overview({
 
       {/* Database Nodes Health Grid */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Status Kesehatan Node Database (Pusat & Lokal)
           </h3>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Live Latency & Connection Ping
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsScannerOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Radar size={13} />
+              <span>Pindai Port 1433 Subnet</span>
+            </button>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Live Latency & Connection Ping
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px' }}>
@@ -377,6 +424,15 @@ export default function Overview({
           )}
         </div>
       </div>
+
+      {/* Subnet Scanner Modal */}
+      <SubnetScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        networkInfo={networkInfo}
+        configs={configs}
+        onNodeUpdated={onRefreshMetrics}
+      />
     </div>
   );
 }
