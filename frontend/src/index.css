@@ -729,7 +729,7 @@ select.form-input {
   background: var(--bg-card-hover);
 }
 
-/* Terminal / Code Log Viewer (Dynamically expands to fill viewport) */
+/* Terminal / Code Log Viewer (Dynamically fits viewport without outer window scroll) */
 .terminal-window {
   background: var(--terminal-bg);
   border: 1px solid var(--border-subtle);
@@ -739,13 +739,14 @@ select.form-input {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 290px);
+  height: calc(100vh - 315px);
+  max-height: calc(100vh - 315px);
   box-shadow: var(--shadow-md);
 }
 
 .terminal-header {
   background: var(--terminal-header-bg);
-  padding: 10px 16px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -769,10 +770,8 @@ select.form-input {
 .terminal-dot-green { background: #10b981; }
 
 .terminal-body {
-  padding: 14px 18px;
+  padding: 12px 18px;
   flex: 1;
-  min-height: calc(100vh - 350px);
-  max-height: calc(100vh - 290px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

@@ -83,14 +83,14 @@ export default function LiveLogs({ configs = [] }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* Header & Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h2 style={{ fontSize: '1.24rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             Live Activity & Transaction Viewer
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '3px 0 0 0' }}>
             Pemantauan langsung siklus sinkronisasi data DML tingkat baris dan tabel enterprise secara real-time.
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function LiveLogs({ configs = [] }) {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="card" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Filter size={15} color="var(--text-muted)" />
           <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter:</span>
@@ -246,8 +246,8 @@ export default function LiveLogs({ configs = [] }) {
           </div>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: 'calc(100vh - 290px)' }}>
-          <div className="data-table-wrapper" style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto', border: 'none' }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden', height: 'calc(100vh - 315px)' }}>
+          <div className="data-table-wrapper" style={{ height: 'calc(100vh - 315px)', overflowY: 'auto', border: 'none' }}>
             <table className="data-table">
               <thead>
                 <tr>

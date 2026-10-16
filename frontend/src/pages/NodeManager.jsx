@@ -396,32 +396,15 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                 <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Server Pusat (Source)
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setIsScannerOpen(true)}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      borderColor: 'rgba(56, 189, 248, 0.3)',
-                      color: '#0284c7',
-                      padding: '4px 8px'
-                    }}
-                    title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname Server Pusat"
-                  >
-                    <Radar size={12} />
-                    <span>Pindai Subnet</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleTestPusat}
-                    disabled={testingPusat}
-                  >
-                    <RefreshCw size={12} className={testingPusat ? 'animate-spin' : ''} />
-                    <span>{testingPusat ? 'Menguji...' : 'Test Koneksi'}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleTestPusat}
+                  disabled={testingPusat}
+                >
+                  <RefreshCw size={12} className={testingPusat ? 'animate-spin' : ''} />
+                  <span>{testingPusat ? 'Menguji...' : 'Test Koneksi'}</span>
+                </button>
               </div>
 
               {resultPusat && (
@@ -481,7 +464,27 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               <div className="form-group">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
                   <label className="form-label" style={{ margin: 0 }}>Host & Port Server Pusat</label>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsScannerOpen(true)}
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#0284c7',
+                        fontSize: '0.68rem',
+                        padding: '2px 8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname Server Pusat"
+                    >
+                      <Radar size={11} />
+                      <span>Pindai Subnet</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
