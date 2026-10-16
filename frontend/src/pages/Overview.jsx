@@ -106,42 +106,45 @@ export default function Overview({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Top Banner / Header */}
+      {/* Top Banner / Header (Stable Stacked Layout as in Image 3) */}
       <div style={{
         background: 'var(--bg-card)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
-        padding: '16px 20px',
+        padding: '18px 24px',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '14px'
+        flexDirection: 'column',
+        gap: '12px',
+        boxShadow: 'var(--shadow-card, var(--shadow-sm))'
       }}>
-        <div style={{ minWidth: '280px', flex: '1 1 400px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.12rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              AgroSync Enterprise Hub & Monitoring
-            </h2>
-            <span className="badge badge-success">Production v1.0</span>
-          </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.4 }}>
-            Sistem sinkronisasi database cerdas hub-and-spoke multi-perusahaan (API, ANR, TTM) dengan DDL Non-Destruktif dan pelacakan DML tingkat kolom secara real-time.
-          </p>
+        {/* Row 1: Title & Version Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: '1.22rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em', margin: 0 }}>
+            AgroSync Enterprise Hub & Monitoring
+          </h2>
+          <span className="badge badge-success" style={{ fontSize: '0.74rem', padding: '3px 9px' }}>
+            Production v1.0
+          </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Row 2: Subtitle Description */}
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', lineHeight: 1.5, margin: 0 }}>
+          Sistem sinkronisasi database cerdas hub-and-spoke multi-perusahaan (API, AGC, TTM) dengan DDL Non-Destruktif dan pelacakan DML tingkat kolom secara real-time.
+        </p>
+
+        {/* Row 3: Action & Status Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '2px' }}>
           {networkInfo && (
             <div style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '5px 12px',
+              padding: '6px 12px',
               background: 'rgba(56, 189, 248, 0.08)',
               border: '1px solid rgba(56, 189, 248, 0.25)',
               borderRadius: 'var(--radius-sm)',
               fontSize: '0.78rem',
-              color: '#38bdf8'
+              color: '#0284c7'
             }}>
               <Wifi size={13} />
               <span>Host Lokal: <strong>{networkInfo.local_ip}</strong> <span style={{ color: 'var(--text-muted)' }}>({networkInfo.local_hostname})</span></span>

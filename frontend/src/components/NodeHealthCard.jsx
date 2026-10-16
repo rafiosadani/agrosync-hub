@@ -7,7 +7,7 @@ function formatErrorMessage(raw) {
   if (!raw) return null;
   const str = String(raw);
   if (str.includes('Login timeout expired')) {
-    return 'Koneksi timeout: Server pusat tidak merespons (periksa apakah IP/hostname mentor aktif & port 1433 dibuka).';
+    return 'Koneksi timeout: Server pusat tidak merespons (periksa apakah IP/hostname server pusat aktif & port 1433 dibuka).';
   }
   if (str.includes('belum dibuat di server ini')) {
     return str; // Pesan ramah yang sudah kita buat
@@ -141,7 +141,7 @@ export default function NodeHealthCard({ node, onEdit }) {
               <button
                 type="button"
                 className="btn-copy-chip"
-                onClick={() => handleCopy(node.server_lokal || '127.0.0.1,1435', `lokal-${node.id}`, 'Alamat Server Lokal')}
+                onClick={() => handleCopy(node.server_lokal || '127.0.0.1,1433', `lokal-${node.id}`, 'Alamat Server Lokal')}
                 title="Salin Alamat Server Lokal"
               >
                 {copiedKey === `lokal-${node.id}` ? <Check size={12} color="#10b981" /> : <Copy size={12} />}

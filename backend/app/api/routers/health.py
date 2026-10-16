@@ -102,7 +102,7 @@ class SubnetScanRequest(BaseModel):
 class UpdateNodeAddressRequest(BaseModel):
     node_id: int
     role: str = Field(..., description="'pusat' atau 'lokal'")
-    new_address: str = Field(..., description="Alamat host baru, misal 192.168.2.145,1433 atau LAPTOP-MENTOR,1433")
+    new_address: str = Field(..., description="Alamat host baru, misal 192.168.2.145,1433 atau HOST-SERVER,1433")
 
 @router.get("/network-info")
 def get_network_info_endpoint():

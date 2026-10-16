@@ -24,7 +24,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration - mengizinkan akses dari browser lokal dan perangkat mentor di LAN
+# CORS configuration - mengizinkan akses dari browser lokal dan perangkat client di LAN
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Fleksibel untuk pengujian LAN / multi-device

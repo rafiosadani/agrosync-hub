@@ -80,11 +80,11 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
       CompanyName: '',
       ServerPusat: '',
       DatabasePusat: '',
-      UserPusat: 'sa',
+      UserPusat: '',
       PasswordPusat: '',
       ServerLokal: '',
       DatabaseLokal: '',
-      UserLokal: 'sa',
+      UserLokal: '',
       PasswordLokal: ''
     });
     setResultPusat(null);
@@ -392,11 +392,26 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               padding: '16px',
               boxShadow: 'var(--shadow-card, var(--shadow-sm))'
             }}>
-              <div style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Server Pusat (Source)
-                  </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', minHeight: '32px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Server Pusat (Source)
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setIsScannerOpen(true)}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      borderColor: 'rgba(56, 189, 248, 0.3)',
+                      color: '#0284c7',
+                      padding: '4px 8px'
+                    }}
+                    title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname Server Pusat"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai Subnet</span>
+                  </button>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -405,29 +420,6 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   >
                     <RefreshCw size={12} className={testingPusat ? 'animate-spin' : ''} />
                     <span>{testingPusat ? 'Menguji...' : 'Test Koneksi'}</span>
-                  </button>
-                </div>
-                {/* Posisi scan subnet tepat di bawah tulisan server pusat (source) */}
-                <div style={{ marginTop: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsScannerOpen(true)}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#0284c7',
-                      fontSize: '0.72rem',
-                      padding: '3px 8px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                    title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname laptop mentor"
-                  >
-                    <Radar size={12} />
-                    <span>Pindai IP Mentor di Subnet WiFi</span>
                   </button>
                 </div>
               </div>
@@ -505,7 +497,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                         padding: '2px 8px',
                         cursor: 'pointer'
                       }}
-                      title="Gunakan IP Laptop Mentor: 192.168.2.126"
+                      title="Gunakan IP Server Pusat: 192.168.2.126"
                     >
                       IP: 192.168.2.126
                     </button>
@@ -524,7 +516,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                         padding: '2px 8px',
                         cursor: 'pointer'
                       }}
-                      title="Gunakan Hostname Laptop Mentor: LAPTOP-IVSFKQ1T.local"
+                      title="Gunakan Hostname Server Pusat: LAPTOP-IVSFKQ1T.local"
                     >
                       Hostname: LAPTOP-IVSFKQ1T
                     </button>
@@ -563,6 +555,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   autoComplete="on"
                   value={formData.UserPusat}
                   onChange={(e) => setFormData({ ...formData, UserPusat: e.target.value })}
+                  placeholder="Contoh: sa"
                 />
               </div>
 
@@ -686,7 +679,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                         type="button"
                         onClick={() => {
                           const current = formData.ServerLokal || '';
-                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1435');
+                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
                           setFormData({ ...formData, ServerLokal: `${networkInfo.local_ip},${port}` });
                         }}
                         style={{
@@ -706,7 +699,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                         type="button"
                         onClick={() => {
                           const current = formData.ServerLokal || '';
-                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1435');
+                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
                           setFormData({ ...formData, ServerLokal: `${networkInfo.local_hostname},${port}` });
                         }}
                         style={{
@@ -732,7 +725,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   autoComplete="on"
                   value={formData.ServerLokal}
                   onChange={(e) => setFormData({ ...formData, ServerLokal: e.target.value })}
-                  placeholder="Contoh: 192.168.2.99,1435 atau localhost,1435"
+                  placeholder="Contoh: 192.168.2.99,1433 atau localhost,1433"
                 />
               </div>
 
@@ -758,6 +751,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   autoComplete="on"
                   value={formData.UserLokal}
                   onChange={(e) => setFormData({ ...formData, UserLokal: e.target.value })}
+                  placeholder="Contoh: sa"
                 />
               </div>
 

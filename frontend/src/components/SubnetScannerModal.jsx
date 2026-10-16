@@ -85,7 +85,7 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
       isOpen={isOpen}
       onClose={onClose}
       title="Pindai Instance SQL Server di Jaringan Lokal (WiFi)"
-      subtitle="Otomatis mendeteksi perangkat dan laptop mentor yang membuka port 1433 dalam 1.5 detik"
+      subtitle="Otomatis mendeteksi perangkat dan SQL Server yang membuka port 1433 dalam 1.5 detik"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Info Network Banner */}
@@ -253,7 +253,7 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                               )}
                               {!isMyLaptop && (
                                 <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                                  Device Jaringan / Mentor
+                                  Device Jaringan (Server Pusat)
                                 </span>
                               )}
                             </div>
@@ -316,7 +316,7 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                             lineHeight: 1.4
                           }}>
                             <div>📌 <strong>Set IP:</strong> Menerapkan nomor IP langsung (<code>{dev.ip},1433</code>) ke server pusat node database terpilih.</div>
-                            <div>🌐 <strong>Set Hostname:</strong> Menerapkan nama hostname mDNS (<code>{(dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local')},1433</code>) agar koneksi tetap terhubung otomatis meskipun IP laptop mentor berganti di WiFi.</div>
+                            <div>🌐 <strong>Set Hostname:</strong> Menerapkan nama hostname mDNS (<code>{(dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local')},1433</code>) agar koneksi tetap terhubung otomatis meskipun IP server pusat berganti di WiFi.</div>
                           </div>
 
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -399,7 +399,8 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                 textAlign: 'center',
                 padding: '30px 20px',
                 color: 'var(--text-muted)',
-                background: 'rgba(0, 0, 0, 0.2)',
+                background: 'var(--bg-card-inner)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)'
               }}>
                 <AlertTriangle size={32} color="#fbbf24" style={{ margin: '0 auto 10px auto' }} />
@@ -407,7 +408,7 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                   Tidak Ada Instance SQL Server yang Merespon
                 </div>
                 <div style={{ fontSize: '0.78rem', marginTop: '4px' }}>
-                  Pastikan SQL Server di laptop mentor sudah dijalankan dan fitur TCP/IP di SQL Server Configuration Manager berstatus Enabled.
+                  Pastikan SQL Server di Server Pusat sudah dijalankan dan fitur TCP/IP di SQL Server Configuration Manager berstatus Enabled.
                 </div>
               </div>
             )}

@@ -246,8 +246,8 @@ export default function LiveLogs({ configs = [] }) {
           </div>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="data-table-wrapper">
+        <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: 'calc(100vh - 290px)' }}>
+          <div className="data-table-wrapper" style={{ maxHeight: 'calc(100vh - 290px)', overflowY: 'auto', border: 'none' }}>
             <table className="data-table">
               <thead>
                 <tr>

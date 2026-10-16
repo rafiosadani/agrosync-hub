@@ -25,7 +25,7 @@ export default function NetworkGuide() {
   const steps = [
     {
       title: "Langkah 1: Hubungkan Kedua Perangkat ke Jaringan yang Sama (Wi-Fi / LAN)",
-      description: "Pastikan laptop Anda (host database & backend) dan laptop mentor berada di subnet atau router Wi-Fi yang sama (misal sama-sama terhubung ke Wi-Fi kantor atau hotspot seluler).",
+      description: "Pastikan laptop Anda (host database & backend) dan komputer target/client berada di subnet atau router Wi-Fi yang sama (misal sama-sama terhubung ke Wi-Fi kantor atau hotspot seluler).",
       command: "# Pada macOS / Linux:\nifconfig | grep \"inet \" | grep -v 127.0.0.1\n\n# Pada Windows (Command Prompt / PowerShell):\nipconfig",
       note: "Catat IPv4 Anda, misalnya: 192.168.1.50"
     },
@@ -43,20 +43,20 @@ export default function NetworkGuide() {
     },
     {
       title: "Langkah 4: Jalankan Backend & Frontend dengan Binding 0.0.0.0",
-      description: "Backend FastAPI dan Frontend Vite harus dijalankan dengan host 0.0.0.0 agar dapat menerima koneksi dari perangkat luar (laptop mentor).",
+      description: "Backend FastAPI dan Frontend Vite harus dijalankan dengan host 0.0.0.0 agar dapat menerima koneksi dari perangkat luar di jaringan LAN/Wi-Fi.",
       command: "# Menjalankan Backend API (Terminal 1):\npython3 run_backend.py\n\n# Menjalankan Frontend Web (Terminal 2):\ncd frontend && npm run dev -- --host 0.0.0.0",
       note: "Sistem telah dikonfigurasi dengan binding 0.0.0.0 secara default."
     },
     {
-      title: "Langkah 5: Akses dari Laptop Mentor",
-      description: "Dari laptop mentor, buka browser dan arahkan ke alamat IP laptop Anda.",
-      command: "# Buka di browser laptop mentor:\nhttp://<IP_ANDA>:5173\n\n# Atau untuk melihat Swagger API Docs:\nhttp://<IP_ANDA>:8000/docs",
+      title: "Langkah 5: Akses dari Browser Client di Jaringan",
+      description: "Dari komputer client/target di jaringan, buka browser dan arahkan ke alamat IP laptop Anda.",
+      command: "# Buka di browser client jaringan:\nhttp://<IP_ANDA>:5173\n\n# Atau untuk melihat Swagger API Docs:\nhttp://<IP_ANDA>:8000/docs",
       note: "Contoh: http://192.168.1.50:5173"
     },
     {
       title: "Langkah 6: Uji Sinkronisasi Multi-Device (Simulasi DML)",
-      description: "Lakukan pengujian langsung bersama mentor untuk memverifikasi keandalan mesin sinkronisasi.",
-      command: "# 1. Buka halaman Config & Node Manager pada web\n# 2. Masukkan IP nyata SQL Server mentor pada Server Pusat atau Server Lokal\n# 3. Klik tombol 'Test Koneksi' untuk mengukur ping latensi\n# 4. Klik 'Sync Now (On-Demand)' dan amati Live Terminal Viewer!",
+      description: "Lakukan pengujian langsung antar-perangkat untuk memverifikasi keandalan mesin sinkronisasi.",
+      command: "# 1. Buka halaman Config & Node Manager pada web\n# 2. Masukkan IP nyata SQL Server target pada Server Pusat atau Server Lokal\n# 3. Klik tombol 'Test Koneksi' untuk mengukur ping latensi\n# 4. Klik 'Sync Now (On-Demand)' dan amati Live Terminal Viewer!",
       note: "Setiap data INSERT, UPDATE perbedaan kolom, dan DELETE akan tercatat sejajar tanpa delay."
     }
   ];
@@ -89,7 +89,7 @@ export default function NetworkGuide() {
               Panduan Integrasi & Pengujian Multi-Device (Tahap 2)
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-              Prosedur teknis terstruktur untuk menghubungkan AgroSync Hub antar-device (laptop Anda & laptop mentor) dalam jaringan LAN/Wi-Fi nyata.
+              Prosedur teknis terstruktur untuk menghubungkan AgroSync Hub antar-device (Server Host & Client Target) dalam jaringan LAN/Wi-Fi nyata.
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function NetworkGuide() {
             </div>
           </div>
 
-          {/* Laptop Mentor */}
+          {/* Perangkat Client / Target */}
           <div style={{
             textAlign: 'center',
             padding: '16px',
@@ -164,10 +164,10 @@ export default function NetworkGuide() {
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
           }}>
             <Laptop size={32} color="#6366f1" style={{ margin: '0 auto 8px' }} />
-            <h4 style={{ color: '#6366f1', fontWeight: 700, fontSize: '0.9rem' }}>Laptop Mentor (Client / Node)</h4>
+            <h4 style={{ color: '#6366f1', fontWeight: 700, fontSize: '0.9rem' }}>Server Target / Client (Node)</h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.5 }}>
               Web Dashboard Browser<br />
-              SQL Server Lokal (:1434 atau :1433)<br />
+              SQL Server Lokal (:1433)<br />
               IP: <code>192.168.x.y</code>
             </p>
           </div>
