@@ -107,19 +107,27 @@ export default function NetworkGuide() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           alignItems: 'center',
-          gap: '20px',
-          background: 'rgba(0, 0, 0, 0.3)',
-          padding: '24px',
+          gap: '16px',
+          background: 'var(--bg-card-inner)',
+          padding: '20px',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)'
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card, var(--shadow-sm))'
         }}>
           {/* Laptop Anda */}
-          <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-            <Laptop size={36} color="#10b981" style={{ margin: '0 auto 10px' }} />
-            <h4 style={{ color: '#34d399', fontWeight: 700, fontSize: '0.92rem' }}>Laptop Anda (Host Server)</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px' }}>
+          <div style={{
+            textAlign: 'center',
+            padding: '16px',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+          }}>
+            <Laptop size={32} color="#10b981" style={{ margin: '0 auto 8px' }} />
+            <h4 style={{ color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>Laptop Anda (Host Server)</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.5 }}>
               FastAPI (:8000) & Vite (:5173)<br />
               SQL Server Pusat (:1433)<br />
               IP: <code>192.168.x.x</code>
@@ -127,19 +135,37 @@ export default function NetworkGuide() {
           </div>
 
           {/* Wi-Fi / Router */}
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-            <div style={{ background: 'rgba(6, 182, 212, 0.1)', padding: '10px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(6, 182, 212, 0.25)', marginBottom: '8px' }}>
-              <Wifi size={22} color="#06b6d4" style={{ margin: '0 auto 4px' }} />
-              <div style={{ fontSize: '0.74rem', color: '#38bdf8', fontWeight: 700 }}>LAN / WI-FI HUB</div>
+          <div style={{ textAlign: 'center', padding: '12px' }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              marginBottom: '8px',
+              display: 'inline-block',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+            }}>
+              <Wifi size={22} color="#0284c7" style={{ margin: '0 auto 4px' }} />
+              <div style={{ fontSize: '0.74rem', color: '#0284c7', fontWeight: 700 }}>LAN / WI-FI HUB</div>
             </div>
-            <ArrowRight size={20} />
+            <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.76rem' }}>Subnet Port 1433</span>
+              <ArrowRight size={16} />
+            </div>
           </div>
 
           {/* Laptop Mentor */}
-          <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-            <Laptop size={36} color="#6366f1" style={{ margin: '0 auto 10px' }} />
-            <h4 style={{ color: '#818cf8', fontWeight: 700, fontSize: '0.92rem' }}>Laptop Mentor (Client / Node)</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px' }}>
+          <div style={{
+            textAlign: 'center',
+            padding: '16px',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+          }}>
+            <Laptop size={32} color="#6366f1" style={{ margin: '0 auto 8px' }} />
+            <h4 style={{ color: '#6366f1', fontWeight: 700, fontSize: '0.9rem' }}>Laptop Mentor (Client / Node)</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.5 }}>
               Web Dashboard Browser<br />
               SQL Server Lokal (:1434 atau :1433)<br />
               IP: <code>192.168.x.y</code>

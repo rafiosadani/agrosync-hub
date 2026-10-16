@@ -77,12 +77,12 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     setShowModalPassPusat(false);
     setShowModalPassLokal(false);
     setFormData({
-      CompanyName: 'API',
-      ServerPusat: 'localhost,1433',
+      CompanyName: '',
+      ServerPusat: '',
       DatabasePusat: '',
       UserPusat: 'sa',
       PasswordPusat: '',
-      ServerLokal: 'localhost,1434',
+      ServerLokal: '',
       DatabaseLokal: '',
       UserLokal: 'sa',
       PasswordLokal: ''
@@ -376,33 +376,60 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               type="text"
               className="form-input"
               required
+              autoComplete="on"
               value={formData.CompanyName}
               onChange={(e) => setFormData({ ...formData, CompanyName: e.target.value.toUpperCase() })}
-              placeholder="Contoh: API, ANR, TTM"
+              placeholder="Contoh: API, AGC, TTM"
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
             {/* Box Konfigurasi Pusat */}
             <div style={{
-              background: 'rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              background: 'var(--bg-card-inner)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-md)',
-              padding: '16px'
+              padding: '16px',
+              boxShadow: 'var(--shadow-card, var(--shadow-sm))'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>
-                  Server Pusat (Source)
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleTestPusat}
-                  disabled={testingPusat}
-                >
-                  <RefreshCw size={12} className={testingPusat ? 'animate-spin' : ''} />
-                  <span>{testingPusat ? 'Menguji...' : 'Test Koneksi'}</span>
-                </button>
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Server Pusat (Source)
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleTestPusat}
+                    disabled={testingPusat}
+                  >
+                    <RefreshCw size={12} className={testingPusat ? 'animate-spin' : ''} />
+                    <span>{testingPusat ? 'Menguji...' : 'Test Koneksi'}</span>
+                  </button>
+                </div>
+                {/* Posisi scan subnet tepat di bawah tulisan server pusat (source) */}
+                <div style={{ marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#0284c7',
+                      fontSize: '0.72rem',
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                    title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname laptop mentor"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai IP Mentor di Subnet WiFi</span>
+                  </button>
+                </div>
               </div>
 
               {resultPusat && (
@@ -460,77 +487,58 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
                   <label className="form-label" style={{ margin: 0 }}>Host & Port Server Pusat</label>
-                  <button
-                    type="button"
-                    onClick={() => setIsScannerOpen(true)}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#38bdf8',
-                      fontSize: '0.68rem',
-                      padding: '2px 8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Radar size={11} />
-                    <span>Scan IP Subnet</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const port = formData.ServerPusat && formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat && formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
+                        setFormData({ ...formData, ServerPusat: `192.168.2.126,${port}` });
+                      }}
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#10b981',
+                        fontSize: '0.68rem',
+                        padding: '2px 8px',
+                        cursor: 'pointer'
+                      }}
+                      title="Gunakan IP Laptop Mentor: 192.168.2.126"
+                    >
+                      IP: 192.168.2.126
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const port = formData.ServerPusat && formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat && formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
+                        setFormData({ ...formData, ServerPusat: `LAPTOP-IVSFKQ1T.local,${port}` });
+                      }}
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#0284c7',
+                        fontSize: '0.68rem',
+                        padding: '2px 8px',
+                        cursor: 'pointer'
+                      }}
+                      title="Gunakan Hostname Laptop Mentor: LAPTOP-IVSFKQ1T.local"
+                    >
+                      Hostname: LAPTOP-IVSFKQ1T
+                    </button>
+                  </div>
                 </div>
                 <input
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.ServerPusat}
                   onChange={(e) => setFormData({ ...formData, ServerPusat: e.target.value })}
-                  placeholder="localhost,1433 atau 192.168.1.100,1433"
+                  placeholder="Contoh: 192.168.2.126,1433 atau localhost,1433"
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  <span>Pilihan Cepat Mentor:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const port = formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
-                      setFormData({ ...formData, ServerPusat: `LAPTOP-IVSFKQ1T,${port}` });
-                    }}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#38bdf8',
-                      fontSize: '0.66rem',
-                      padding: '2px 6px',
-                      cursor: 'pointer'
-                    }}
-                    title="Gunakan Hostname Laptop Mentor"
-                  >
-                    Hostname: LAPTOP-IVSFKQ1T
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const port = formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
-                      setFormData({ ...formData, ServerPusat: `192.168.2.126,${port}` });
-                    }}
-                    style={{
-                      background: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#34d399',
-                      fontSize: '0.66rem',
-                      padding: '2px 6px',
-                      cursor: 'pointer'
-                    }}
-                    title="Gunakan IP Laptop Mentor"
-                  >
-                    IP: 192.168.2.126
-                  </button>
-                </div>
               </div>
 
               <div className="form-group">
@@ -539,6 +547,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.DatabasePusat}
                   onChange={(e) => setFormData({ ...formData, DatabasePusat: e.target.value })}
                   placeholder="Contoh: APIdb001"
@@ -551,6 +560,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.UserPusat}
                   onChange={(e) => setFormData({ ...formData, UserPusat: e.target.value })}
                 />
@@ -562,6 +572,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   <input
                     type={showModalPassPusat ? "text" : "password"}
                     className="form-input"
+                    autoComplete="on"
                     style={{ paddingRight: '42px', width: '100%' }}
                     value={formData.PasswordPusat}
                     onChange={(e) => setFormData({ ...formData, PasswordPusat: e.target.value })}
@@ -591,13 +602,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
             {/* Box Konfigurasi Lokal */}
             <div style={{
-              background: 'rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              background: 'var(--bg-card-inner)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-md)',
-              padding: '16px'
+              padding: '16px',
+              boxShadow: 'var(--shadow-card, var(--shadow-sm))'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Server Lokal (Destination)
                 </span>
                 <button
@@ -666,10 +678,10 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
                   <label className="form-label" style={{ margin: 0 }}>Host & Port Server Lokal</label>
                   {networkInfo && (
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
                         onClick={() => {
@@ -681,7 +693,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                           background: 'rgba(16, 185, 129, 0.1)',
                           border: '1px solid rgba(16, 185, 129, 0.3)',
                           borderRadius: 'var(--radius-sm)',
-                          color: '#34d399',
+                          color: '#10b981',
                           fontSize: '0.68rem',
                           padding: '2px 8px',
                           cursor: 'pointer'
@@ -701,14 +713,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                           background: 'rgba(56, 189, 248, 0.1)',
                           border: '1px solid rgba(56, 189, 248, 0.3)',
                           borderRadius: 'var(--radius-sm)',
-                          color: '#38bdf8',
+                          color: '#0284c7',
                           fontSize: '0.68rem',
                           padding: '2px 8px',
                           cursor: 'pointer'
                         }}
                         title={`Gunakan Hostname Laptop: ${networkInfo.local_hostname}`}
                       >
-                        Hostname
+                        Hostname: {networkInfo.local_hostname?.split('.')[0] || 'Lokal'}
                       </button>
                     </div>
                   )}
@@ -717,9 +729,10 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.ServerLokal}
                   onChange={(e) => setFormData({ ...formData, ServerLokal: e.target.value })}
-                  placeholder="localhost,1434 atau 192.168.1.105,1433"
+                  placeholder="Contoh: 192.168.2.99,1435 atau localhost,1435"
                 />
               </div>
 
@@ -729,6 +742,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.DatabaseLokal}
                   onChange={(e) => setFormData({ ...formData, DatabaseLokal: e.target.value })}
                   placeholder="Contoh: APIdb001"
@@ -741,6 +755,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   type="text"
                   className="form-input"
                   required
+                  autoComplete="on"
                   value={formData.UserLokal}
                   onChange={(e) => setFormData({ ...formData, UserLokal: e.target.value })}
                 />
@@ -752,6 +767,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   <input
                     type={showModalPassLokal ? "text" : "password"}
                     className="form-input"
+                    autoComplete="on"
                     style={{ paddingRight: '42px', width: '100%' }}
                     value={formData.PasswordLokal}
                     onChange={(e) => setFormData({ ...formData, PasswordLokal: e.target.value })}

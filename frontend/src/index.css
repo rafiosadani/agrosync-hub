@@ -160,7 +160,7 @@ body {
 }
 
 .sidebar {
-  width: 260px;
+  width: 285px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-subtle);
   display: flex;
@@ -179,7 +179,7 @@ body {
 }
 
 .main-content {
-  margin-left: 260px;
+  margin-left: 285px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -335,6 +335,10 @@ body {
 .nav-item-btn .nav-badge {
   margin-left: auto;
   flex-shrink: 0;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
 }
 
 /* Card System */
@@ -607,13 +611,29 @@ body {
   color: var(--text-primary);
   font-family: inherit;
   font-size: 0.86rem;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--accent-emerald);
   box-shadow: 0 0 0 1px var(--accent-emerald);
+}
+
+/* Custom styled select dropdown with crisp SVG chevron arrow */
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  padding-right: 32px !important;
+  cursor: pointer;
+}
+
+[data-theme='dark'] select.form-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* Modal Overlay & Wider 840px Modal Content */
@@ -684,20 +704,21 @@ body {
 
 .data-table th {
   background: var(--table-header-bg);
-  padding: 12px 16px;
+  padding: 10px 14px;
   font-weight: 600;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
 .data-table td {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
+  font-size: 0.78rem;
 }
 
 .data-table tr:last-child td {
@@ -714,7 +735,7 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   overflow: hidden;
 }
 

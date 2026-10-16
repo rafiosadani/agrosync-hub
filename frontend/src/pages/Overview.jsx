@@ -388,10 +388,11 @@ export default function Overview({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 16px',
-                  background: 'rgba(0, 0, 0, 0.2)',
+                  background: 'var(--bg-card-inner)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-subtle)',
-                  fontSize: '0.84rem'
+                  fontSize: '0.84rem',
+                  boxShadow: 'var(--shadow-card, var(--shadow-sm))'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -403,7 +404,7 @@ export default function Overview({
                     {log.level}
                   </span>
                   {log.company_name && (
-                    <strong style={{ color: '#34d399' }}>[{log.company_name}]</strong>
+                    <strong style={{ color: '#10b981' }}>[{log.company_name}]</strong>
                   )}
                   <span style={{ color: 'var(--text-primary)' }}>{log.message}</span>
                 </div>

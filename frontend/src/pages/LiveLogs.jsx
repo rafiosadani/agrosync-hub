@@ -17,7 +17,7 @@ import { api } from '../api';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
 
-export default function LiveLogs() {
+export default function LiveLogs({ configs = [] }) {
   const confirm = useConfirm();
   const toast = useToast();
   const [logs, setLogs] = useState([]);
@@ -27,6 +27,14 @@ export default function LiveLogs() {
   const [selectedLevel, setSelectedLevel] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Dynamic company list derived from configured nodes and active logs
+  const dynamicCompanies = Array.from(
+    new Set([
+      ...(configs || []).map(c => c.CompanyName),
+      ...(logs || []).map(l => l.company_name)
+    ].filter(Boolean))
+  ).sort();
 
   const fetchLogs = async () => {
     try {
@@ -153,20 +161,20 @@ export default function LiveLogs() {
         {/* Company filter */}
         <select
           className="form-input"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.84rem' }}
+          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.82rem' }}
           value={selectedCompany}
           onChange={(e) => setSelectedCompany(e.target.value)}
         >
           <option value="">Semua Perusahaan</option>
-          <option value="API">API</option>
-          <option value="ANR">ANR</option>
-          <option value="TTM">TTM</option>
+          {dynamicCompanies.map((comp) => (
+            <option key={comp} value={comp}>{comp}</option>
+          ))}
         </select>
 
         {/* Level filter */}
         <select
           className="form-input"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.84rem' }}
+          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.82rem' }}
           value={selectedLevel}
           onChange={(e) => setSelectedLevel(e.target.value)}
         >
@@ -183,7 +191,7 @@ export default function LiveLogs() {
           <input
             type="text"
             className="form-input"
-            style={{ paddingLeft: '32px', padding: '6px 12px 6px 32px', fontSize: '0.84rem' }}
+            style={{ paddingLeft: '32px', padding: '6px 12px 6px 32px', fontSize: '0.82rem' }}
             placeholder="Cari nama tabel atau kata kunci log..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -210,7 +218,7 @@ export default function LiveLogs() {
             <span style={{ fontSize: '0.72rem', color: '#10b981' }}>STREAMING</span>
           </div>
 
-          <div className="terminal-body">
+          <div className="terminal-body" style={{ fontSize: '0.75rem', lineHeight: '1.45' }}>
             {logs.length > 0 ? (
               logs.map((log) => {
                 let color = '#94a3b8';
@@ -220,9 +228,9 @@ export default function LiveLogs() {
                 if (log.level === 'INFO') color = '#38bdf8';
 
                 return (
-                  <div key={log.id} className="terminal-line" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div key={log.id} className="terminal-line" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '2px 0', fontSize: '0.75rem' }}>
                     <span style={{ color: '#64748b', userSelect: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.timestamp}]</span>
-                    <span style={{ color: color, fontWeight: 700, minWidth: '88px', flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.level}]</span>
+                    <span style={{ color: color, fontWeight: 700, minWidth: '82px', flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.level}]</span>
                     {log.company_name && (
                       <span style={{ color: '#34d399', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>[{log.company_name}]</span>
                     )}
@@ -243,8 +251,8 @@ export default function LiveLogs() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: '175px', whiteSpace: 'nowrap' }}>Timestamp</th>
-                  <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Level</th>
+                  <th style={{ width: '170px', whiteSpace: 'nowrap' }}>Timestamp</th>
+                  <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Level</th>
                   <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Perusahaan</th>
                   <th>Pesan / Aktivitas</th>
                   <th style={{ width: '220px', textAlign: 'right', whiteSpace: 'nowrap' }}>Rincian DML</th>
@@ -254,7 +262,7 @@ export default function LiveLogs() {
                 {logs.length > 0 ? (
                   logs.map((log) => (
                     <tr key={log.id}>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {log.timestamp}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
@@ -262,18 +270,18 @@ export default function LiveLogs() {
                           log.level === 'SUCCESS' ? 'badge-success' :
                           log.level === 'ERROR' ? 'badge-danger' :
                           log.level === 'WARNING' ? 'badge-warning' : 'badge-info'
-                        }`} style={{ fontSize: '0.7rem' }}>
+                        }`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
                           {log.level}
                         </span>
                       </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.76rem' }}>
                         {log.company_name ? (
                           <strong style={{ color: '#34d399' }}>{log.company_name}</strong>
                         ) : (
                           <span style={{ color: 'var(--text-muted)' }}>GLOBAL</span>
                         )}
                       </td>
-                      <td style={{ color: 'var(--text-primary)' }}>
+                      <td style={{ color: 'var(--text-primary)', fontSize: '0.78rem' }}>
                         {log.message}
                       </td>
                       <td style={{ textAlign: 'right' }}>

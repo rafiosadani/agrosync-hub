@@ -95,6 +95,7 @@ export default function App() {
           onRefreshAll={() => fetchDashboardData(true)}
           isRefreshing={isRefreshing}
           onNavigateToMigration={() => setCurrentTab('migration')}
+          onNavigateToNodes={() => setCurrentTab('nodes')}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={handleToggleSidebar}
         />
@@ -121,7 +122,7 @@ export default function App() {
           )}
 
           {currentTab === 'logs' && (
-            <LiveLogs />
+            <LiveLogs configs={configs} />
           )}
 
           {currentTab === 'migration' && (

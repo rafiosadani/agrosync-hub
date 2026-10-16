@@ -12,7 +12,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Server
 } from 'lucide-react';
 import { api } from '../api';
 import { useToast } from './Toast';
@@ -25,6 +26,7 @@ export default function Navbar({
   onRefreshAll, 
   isRefreshing,
   onNavigateToMigration,
+  onNavigateToNodes,
   isSidebarCollapsed,
   onToggleSidebar
 }) {
@@ -162,15 +164,29 @@ export default function Navbar({
           </div>
 
           {hasOfflineNodes && (
-            <span 
+            <button 
+              type="button"
               className="badge badge-warning" 
-              style={{ cursor: 'pointer', fontSize: '0.72rem' }}
-              onClick={() => checkPreconditions()}
-              title="Klik untuk melihat detail kendala koneksi database"
+              style={{
+                cursor: 'pointer',
+                fontSize: '0.72rem',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: 'rgba(245, 158, 11, 0.12)'
+              }}
+              onClick={() => {
+                if (onNavigateToNodes) {
+                  onNavigateToNodes();
+                  toast.info('Kelola Node Database', 'Mengarahkan ke manajemen node database untuk memeriksa status koneksi instance.');
+                }
+              }}
+              title="Klik untuk membuka manajemen Node Database dan memeriksa koneksi"
             >
               <AlertTriangle size={12} />
               <span>{systemHealth?.degraded_nodes + systemHealth?.offline_nodes} Node Perlu Perhatian</span>
-            </span>
+            </button>
           )}
 
           {syncStatus?.last_sync_time && (
@@ -282,63 +298,79 @@ export default function Navbar({
       {/* Modal Peringatan Jika Database Belum Siap / Belum Konek */}
       {warningMessage && (
         <div className="modal-overlay" onClick={() => setWarningMessage(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
-            <div className="modal-header" style={{ borderBottomColor: 'rgba(245, 158, 11, 0.3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header" style={{ borderBottomColor: 'var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b' }}>
                 <AlertTriangle size={20} />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fbbf24' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Pencegahan: Database Belum Siap
                 </h3>
               </div>
             </div>
             
-            <div className="modal-body" style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              <p style={{ marginBottom: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>
+            <div className="modal-body" style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <p style={{ marginBottom: '12px', color: 'var(--text-primary)', fontWeight: 600 }}>
                 Sinkronisasi DML ditahan sementara demi keamanan sistem:
               </p>
               
               <div style={{
-                background: 'rgba(0, 0, 0, 0.35)',
+                background: 'var(--bg-card-inner)',
+                border: '1px solid rgba(244, 63, 94, 0.35)',
                 padding: '12px 14px',
                 borderRadius: 'var(--radius-md)',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '0.8rem',
-                color: '#fb7185',
+                fontSize: '0.78rem',
+                color: '#e11d48',
                 whiteSpace: 'pre-wrap',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                lineHeight: 1.5
               }}>
                 {warningMessage}
               </div>
 
               <div style={{
                 background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
                 borderRadius: 'var(--radius-md)',
                 padding: '12px 14px',
                 fontSize: '0.82rem',
-                color: '#34d399'
+                color: 'var(--text-secondary)'
               }}>
-                💡 <strong>Tips Enterprise</strong>: Jika database baru di server tujuan belum dibuat, Anda cukup menjalankan menu <strong>Smart DDL Schema Migration</strong> untuk membuat database dan 330+ tabel secara otomatis.
+                💡 <strong style={{ color: '#10b981' }}>Tips Enterprise</strong>: Jika database baru di server tujuan belum dibuat, Anda cukup menjalankan menu <strong>Smart DDL Schema Migration</strong> untuk membuat database dan 330+ tabel secara otomatis.
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer" style={{ borderTopColor: 'var(--border-subtle)', justifyContent: 'space-between' }}>
               <button className="btn btn-secondary btn-sm" onClick={() => setWarningMessage(null)}>
                 Tutup
               </button>
-              {onNavigateToMigration && (
-                <button 
-                  className="btn btn-primary btn-sm" 
-                  onClick={() => {
-                    setWarningMessage(null);
-                    onNavigateToMigration();
-                  }}
-                >
-                  <Database size={14} />
-                  <span>Buka Smart DDL Migration</span>
-                  <ArrowRight size={14} />
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {onNavigateToNodes && (
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => {
+                      setWarningMessage(null);
+                      onNavigateToNodes();
+                    }}
+                  >
+                    <Server size={14} />
+                    <span>Cek Node Database</span>
+                  </button>
+                )}
+                {onNavigateToMigration && (
+                  <button 
+                    className="btn btn-primary btn-sm" 
+                    onClick={() => {
+                      setWarningMessage(null);
+                      onNavigateToMigration();
+                    }}
+                  >
+                    <Database size={14} />
+                    <span>Buka Smart DDL Migration</span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
