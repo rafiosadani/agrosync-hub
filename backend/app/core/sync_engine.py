@@ -494,6 +494,7 @@ class EnterpriseSyncEngine:
             if self.state == "RUNNING":
                 self._pause_event.clear()
                 self.state = "PAUSED"
+                self._trigger_event.set()  # Unblock timer jeda interval seketika
                 self.add_log("WARNING", "Siklus sinkronisasi dijeda oleh pengguna.")
                 return True
             return False

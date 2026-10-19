@@ -26,6 +26,18 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
 }
 
+/* Prevent transition flash / FOUC during initial page boot & reload */
+html.theme-preload,
+html.theme-preload *,
+html.theme-preload *::before,
+html.theme-preload *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+}
+
 /* Dark Theme (Default & [data-theme='dark']) */
 :root,
 [data-theme='dark'] {
@@ -66,7 +78,7 @@
   --scrollbar-thumb: #27272a;
   --scrollbar-thumb-hover: #3f3f46;
   --skeleton-base: #1c1c22;
-  --skeleton-highlight: #2a2a33;
+  --skeleton-highlight: #282832;
 }
 
 /* Light Theme ([data-theme='light']) */
@@ -110,12 +122,12 @@
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
   --skeleton-base: #e2e8f0;
-  --skeleton-highlight: #f1f5f9;
+  --skeleton-highlight: #f8fafc;
 }
 
-/* Fallback for system light mode */
+/* Fallback for system light mode when no data-theme attribute is present */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
+  :root:not([data-theme]) {
     --bg-primary: #f8fafc;
     --bg-secondary: #ffffff;
     --bg-card: #ffffff;
@@ -140,6 +152,8 @@
     --terminal-header-bg: #1e293b;
     --scrollbar-thumb: #cbd5e1;
     --scrollbar-thumb-hover: #94a3b8;
+    --skeleton-base: #e2e8f0;
+    --skeleton-highlight: #f8fafc;
   }
 }
 

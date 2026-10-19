@@ -30,6 +30,8 @@ export function ThemeProvider({ children }) {
       }
       setResolvedTheme(active);
       document.documentElement.setAttribute('data-theme', active);
+      document.documentElement.style.colorScheme = active;
+      document.documentElement.style.backgroundColor = active === 'light' ? '#f8fafc' : '#09090b';
     };
 
     updateResolvedTheme();
@@ -47,6 +49,14 @@ export function ThemeProvider({ children }) {
   const setTheme = (newTheme) => {
     setThemeState(newTheme);
     localStorage.setItem('agrosync_theme', newTheme);
+    let active = newTheme;
+    if (newTheme === 'system') {
+      active = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    setResolvedTheme(active);
+    document.documentElement.setAttribute('data-theme', active);
+    document.documentElement.style.colorScheme = active;
+    document.documentElement.style.backgroundColor = active === 'light' ? '#f8fafc' : '#09090b';
   };
 
   return (

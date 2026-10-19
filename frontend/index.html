@@ -1,10 +1,38 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="theme-preload">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AgroSync Hub - Enterprise Database Sync & Monitoring System</title>
     <meta name="description" content="Dashboard pemantauan real-time dan manajemen database terpusat untuk AgroSync Hub enterprise multi-company database synchronization." />
+    <!-- Pre-paint Theme Initializer: Mencegah kedip (FOUC) & distorsi warna skeleton saat refresh -->
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('agrosync_theme') || 'system';
+          var resolved = stored;
+          if (stored === 'system') {
+            resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.style.colorScheme = resolved;
+          if (resolved === 'light') {
+            document.documentElement.style.backgroundColor = '#f8fafc';
+          } else {
+            document.documentElement.style.backgroundColor = '#09090b';
+          }
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+          document.documentElement.style.backgroundColor = '#09090b';
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+          requestAnimationFrame(function() {
+            document.documentElement.classList.remove('theme-preload');
+          });
+        });
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">

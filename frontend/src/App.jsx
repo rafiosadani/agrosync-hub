@@ -61,10 +61,12 @@ export default function App() {
 
   useEffect(() => {
     fetchDashboardData(true);
-    // Auto polling dashboard state every 10s (menggunakan cached health ping)
-    const interval = setInterval(() => fetchDashboardData(false), 10000);
+    // Polling interval adaptif: jika RUNNING atau SYNCING polling tiap 3s, jika IDLE/STOPPED tiap 10s
+    const isEngineActive = syncStatus?.state === 'RUNNING' || syncStatus?.state === 'SYNCING' || syncStatus?.is_loop_running;
+    const intervalTime = isEngineActive ? 3000 : 10000;
+    const interval = setInterval(() => fetchDashboardData(false), intervalTime);
     return () => clearInterval(interval);
-  }, []);
+  }, [syncStatus?.state, syncStatus?.is_loop_running]);
 
   const handleTriggerSync = async () => {
     try {
@@ -120,6 +122,7 @@ export default function App() {
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Navbar
           syncStatus={syncStatus}
+          setSyncStatus={setSyncStatus}
           systemHealth={systemHealth}
           onTriggerSync={handleTriggerSync}
           onRefreshAll={() => fetchDashboardData(true)}

@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar({ 
   syncStatus, 
+  setSyncStatus,
   systemHealth, 
   onTriggerSync, 
   onRefreshAll, 
@@ -34,9 +35,9 @@ export default function Navbar({
   const toast = useToast();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const state = syncStatus?.state || 'IDLE';
-  const isLoopActive = state === 'RUNNING' || Boolean(syncStatus?.is_loop_running);
-  const isSyncing = state === 'SYNCING' || Boolean(syncStatus?.is_syncing_once) || Boolean(syncStatus?.is_active_syncing);
+  const isLoopActive = state === 'RUNNING' || (Boolean(syncStatus?.is_loop_running) && state !== 'PAUSED');
   const isPaused = state === 'PAUSED';
+  const isOnDemandSyncing = (state === 'SYNCING' || Boolean(syncStatus?.is_syncing_once)) && !isLoopActive && !isPaused;
   const [warningMessage, setWarningMessage] = useState(null);
 
   // Periksa apakah seluruh database online dan sehat
@@ -44,7 +45,7 @@ export default function Navbar({
   const hasOfflineNodes = systemHealth && (systemHealth.offline_nodes > 0 || systemHealth.degraded_nodes > 0);
 
   const getStatusBadge = () => {
-    if (isSyncing) {
+    if (isOnDemandSyncing) {
       return (
         <span 
           className="badge badge-primary" 
@@ -117,11 +118,13 @@ export default function Navbar({
       if (state === 'PAUSED') {
         await api.resumeSync();
         toast.info('Siklus Dilanjutkan', 'Engine sinkronisasi otomatis kembali aktif.');
+        setSyncStatus?.(prev => ({ ...prev, state: 'RUNNING', is_loop_running: true }));
       } else {
         await api.startSync();
         toast.success('Engine Dimulai', 'Siklus otomatis berputar tiap interval.');
+        setSyncStatus?.(prev => ({ ...prev, state: 'RUNNING', is_loop_running: true }));
       }
-      onRefreshAll();
+      onRefreshAll?.();
     } catch (err) {
       toast.error('Gagal Memulai Siklus', err.message);
     }
@@ -131,7 +134,8 @@ export default function Navbar({
     try {
       await api.pauseSync();
       toast.warning('Engine Dijeda', 'Siklus otomatis ditahan sementara.');
-      onRefreshAll();
+      setSyncStatus?.(prev => ({ ...prev, state: 'PAUSED' }));
+      onRefreshAll?.();
     } catch (err) {
       toast.error('Gagal Menjeda Siklus', err.message);
     }
@@ -141,7 +145,8 @@ export default function Navbar({
     try {
       await api.stopSync();
       toast.info('Engine Dihentikan', 'Siklus sinkronisasi otomatis dimatikan.');
-      onRefreshAll();
+      setSyncStatus?.(prev => ({ ...prev, state: 'STOPPED', is_loop_running: false }));
+      onRefreshAll?.();
     } catch (err) {
       toast.error('Gagal Menghentikan Siklus', err.message);
     }
@@ -269,32 +274,48 @@ export default function Navbar({
             <span>Refresh</span>
           </button>
 
-          {/* Tombol Play / Pause (Siklus Otomatis) */}
+          {/* Tombol Play / Pause / Lanjutkan (Siklus Otomatis) */}
           {isLoopActive ? (
             <button
               type="button"
               className="btn btn-warning btn-sm"
               onClick={handlePause}
-              disabled={isSyncing}
+              disabled={isOnDemandSyncing}
               title="Tahan sementara siklus otomatis"
             >
               <Pause size={14} />
               <span>Jeda Siklus</span>
+            </button>
+          ) : isPaused ? (
+            <button
+              type="button"
+              className="btn btn-success btn-sm"
+              onClick={handleStartOrResume}
+              disabled={isOnDemandSyncing}
+              title="Lanjutkan siklus otomatis yang sedang dijeda"
+              style={{
+                background: '#10b981',
+                borderColor: '#10b981',
+                color: '#ffffff'
+              }}
+            >
+              <Play size={14} />
+              <span>Lanjutkan Siklus</span>
             </button>
           ) : (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={handleStartOrResume}
-              disabled={isSyncing}
+              disabled={isOnDemandSyncing}
               title={
-                isSyncing 
+                isOnDemandSyncing 
                   ? "Sinkronisasi on-demand sedang berlangsung, harap tunggu hingga selesai" 
-                  : (isPaused ? 'Lanjutkan siklus otomatis' : 'Mulai menjalankan siklus sinkronisasi otomatis berulang')
+                  : "Mulai menjalankan siklus sinkronisasi otomatis berulang"
               }
             >
               <Play size={14} />
-              <span>{isPaused ? 'Lanjutkan Siklus' : 'Mulai Siklus Otomatis'}</span>
+              <span>Mulai Siklus Otomatis</span>
             </button>
           )}
 
@@ -304,7 +325,7 @@ export default function Navbar({
               type="button"
               className="btn btn-danger btn-sm"
               onClick={handleStop}
-              disabled={isSyncing}
+              disabled={isOnDemandSyncing}
               title="Hentikan total siklus otomatis dan kembali ke status Standby"
             >
               <Square size={13} />
@@ -317,14 +338,14 @@ export default function Navbar({
             type="button"
             className="btn btn-primary btn-sm"
             onClick={handleTrigger}
-            disabled={isLoopActive || isSyncing || isPaused}
+            disabled={isLoopActive || isPaused || isOnDemandSyncing}
             title={
               isLoopActive
                 ? "Siklus otomatis sedang aktif berulang. Sync on-demand dinonaktifkan."
-                : isSyncing
-                ? "Sedang menyinkronkan data antar node database (1 siklus)..."
                 : isPaused
                 ? "Engine sedang dijeda. Lanjutkan atau hentikan siklus terlebih dahulu."
+                : isOnDemandSyncing
+                ? "Sedang menyinkronkan data antar node database (1 siklus)..."
                 : "Jalankan 1 kali siklus sinkronisasi instan tanpa perulangan interval (Testing & On-Demand)"
             }
             style={{
@@ -332,10 +353,10 @@ export default function Navbar({
               alignItems: 'center',
               gap: '6px',
               opacity: (isLoopActive || isPaused) ? 0.55 : 1,
-              cursor: (isLoopActive || isPaused || isSyncing) ? 'not-allowed' : 'pointer'
+              cursor: (isLoopActive || isPaused || isOnDemandSyncing) ? 'not-allowed' : 'pointer'
             }}
           >
-            {isSyncing ? (
+            {isOnDemandSyncing ? (
               <>
                 <RefreshCw size={14} className="animate-spin" />
                 <span>Menyinkronkan...</span>

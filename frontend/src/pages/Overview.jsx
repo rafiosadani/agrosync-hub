@@ -14,7 +14,8 @@ import {
   RotateCcw,
   Wifi,
   Radar,
-  Search
+  Search,
+  Pause
 } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
@@ -45,6 +46,11 @@ export default function Overview({
   const confirm = useConfirm();
   const [networkInfo, setNetworkInfo] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const state = syncStatus?.state || 'IDLE';
+  const isLoopActive = state === 'RUNNING' || (Boolean(syncStatus?.is_loop_running) && state !== 'PAUSED');
+  const isPaused = state === 'PAUSED';
+  const isOnDemandSyncing = (state === 'SYNCING' || Boolean(syncStatus?.is_syncing_once)) && !isLoopActive && !isPaused;
 
   useEffect(() => {
     api.getNetworkInfo().then(info => {
@@ -170,7 +176,7 @@ export default function Overview({
       </div>
 
       {/* Live Sync Progress Indicator Banner (Task 3) */}
-      {(syncStatus?.state === 'SYNCING' || syncStatus?.is_syncing_once || syncStatus?.is_active_syncing) && (
+      {isOnDemandSyncing && (
         <div className="sync-live-banner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div className="icon-wrapper">
@@ -181,7 +187,7 @@ export default function Overview({
                 <span>⚡ Sedang Mengeksekusi Sinkronisasi On-Demand (1 Siklus)...</span>
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Engine sedang memindai delta skema & mentransfer perubahan DML (INSERT/UPDATE/DELETE) secara atomik.
+                Engine sedang memindai delta skema & mentransfer perubahan DML (INSERT/UPDATE/DELETE) secara instan 1 kali jalan.
               </div>
             </div>
           </div>
@@ -189,6 +195,53 @@ export default function Overview({
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
               <span className="pulse-dot pulse-dot-blue" />
               <span>LIVE ON-DEMAND</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isLoopActive && (
+        <div className="sync-live-banner" style={{ borderColor: 'rgba(16, 185, 129, 0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.25)' }}>
+              <Activity size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔄 Siklus Sinkronisasi Otomatis Aktif (Loop Berulang)</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                Engine aktif memantau perubahan data secara berkala tiap {syncStatus?.interval_seconds || 10} detik. Tekan 'Jeda Siklus' atau 'Stop' di navbar jika ingin menghentikan.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px' }}>
+              <span className="pulse-dot pulse-dot-green" />
+              <span>LOOP AKTIF</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isPaused && (
+        <div className="sync-live-banner" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
+              <Pause size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⏸️ Siklus Sinkronisasi Otomatis Sedang Dijeda (Paused)</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                Engine ditahan sementara oleh pengguna. Klik tombol 'Lanjutkan Siklus' berwarna hijau di navbar untuk melanjutkan.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px' }}>
+              <span>DIJEDA (PAUSED)</span>
             </span>
           </div>
         </div>
