@@ -34,8 +34,10 @@ Thumbs.db
 
 # Project temporary & backup files
 *.tmp
+*.bak
 sync_config.json.bak
 logs/*.log
+logs/sync_state.json
 
 # Environment credentials (if created in the future)
 .env

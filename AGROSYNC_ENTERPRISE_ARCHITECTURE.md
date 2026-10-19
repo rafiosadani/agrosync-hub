@@ -209,3 +209,42 @@ python3 sync.py
 python3 migrate_schema.py
 ```
 Semua file asli tetap bekerja 100% tanpa ada gangguan atau *breaking changes*.
+
+---
+
+## 7. Evaluasi & Penetapan Arsitektur Project (Unified Monorepo)
+
+### A. Matriks Komparasi: Monorepo vs Polyrepo (Terpisah)
+
+| Parameter Evaluasi | Unified Monorepo (Dipilih) | Polyrepo (Terpisah) | Analisis & Rationale |
+| :--- | :--- | :--- | :--- |
+| **Konsistensi Kontrak API** | ⭐⭐⭐⭐⭐ **Sangat Tinggi** (Atomic Commit) | ⭐⭐ Rendah (Risiko desinkronisasi versi API & UI) | Perubahan endpoint atau response model backend langsung teruji dan sinkron dengan frontend dalam satu commit. |
+| **Kemudahan Eksekusi & Development** | ⭐⭐⭐⭐⭐ **1-Folder Hub** (`./start_system.sh`) | ⭐⭐ Rumit (Perlu clone 2 repo terpisah) | Pengguna awam / operator pabrik dapat meng-clone 1 repo tunggal dan langsung menjalankan sistem tanpa konfigurasi rumit. |
+| **Manajemen Konfigurasi Bersama** | ⭐⭐⭐⭐⭐ **Sentral (`sync_config.json`)** | ⭐⭐ Redundan / Duplikasi config | Konfigurasi node database dan file audit skema terpusat di root direktori. |
+| **Overhead Maintenance Git** | ⭐⭐⭐⭐⭐ **Rendah (Single Git Tree)** | ⭐⭐ Tinggi (Manajemen multiple PR, tag, & token) | Sangat efisien untuk tim pair programming dan pengujian agile. |
+
+### B. Standardisasi Struktur Direktori Proyek
+
+```text
+agrosync-hub/
+├── start_system.sh                     # Skrip peluncur cepat interaktif
+├── sync_config.json                    # Konfigurasi aktif seluruh node database
+├── sync_config.example.json            # Template konfigurasi default
+├── run_backend.py                      # Runner entry point backend API
+├── backend/                            # Layanan Backend FastAPI
+│   ├── requirements.txt                # Dependensi Python ter-pinning
+│   └── app/
+│       ├── main.py                     # Inisialisasi FastAPI & CORS
+│       ├── config.py                   # Driver ODBC & konfigurasi environment
+│       ├── api/routers/                # Router modular (health, sync, configs, migration)
+│       ├── core/                       # Sync Engine, Subnet Scanner, Schema Migrator
+│       └── models/                     # Skema Pydantic DTO & metrics
+├── frontend/                           # Aplikasi Web SPA Dashboard (Vite + React)
+│   ├── package.json                    # Dependensi JavaScript
+│   └── src/
+│       ├── components/                 # Skeleton, Navbar, Modal, Scanner, dsb.
+│       ├── pages/                      # Overview, NodeManager, LiveLogs, Migration
+│       └── context/                    # ThemeContext (Dark/Light/Auto)
+└── logs/                               # Persistensi log aktivitas sinkronisasi
+```
+

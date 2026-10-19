@@ -1,13 +1,13 @@
 #!/bin/bash
 # ==============================================================
-# 🌾 AgroSync Hub - Quick Start Launcher
+# 🌾 AgroSync Hub - Unified Monorepo System Launcher
 # ==============================================================
 
 echo "=================================================="
 echo "🚀 MEMERIKSA STATUS SISTEM AGROSYNC HUB..."
 echo "=================================================="
 
-# 1. Periksa Docker Daemon & Start Containers jika ada
+# 1. Periksa Docker Daemon & Start Containers jika ada (Instance SQL Server)
 if command -v docker &> /dev/null; then
     echo "🐳 Memeriksa Docker SQL Server..."
     if docker ps -a | grep -q "sqlserver"; then
@@ -19,9 +19,8 @@ fi
 
 echo ""
 echo "=================================================="
-echo "📌 CARA MENJALANKAN LENGKAP:"
+echo "📌 CARA MENJALANKAN LENGKAP (2 TERMINAL):"
 echo "=================================================="
-echo "Buka 2 Jendela Terminal terpisah:"
 echo ""
 echo "🔹 TERMINAL 1 (Backend API):"
 echo "   cd /Users/rafioosadani/Downloads/agrosync-hub"
@@ -31,7 +30,7 @@ echo "🔹 TERMINAL 2 (Frontend Dashboard):"
 echo "   cd /Users/rafioosadani/Downloads/agrosync-hub/frontend"
 echo "   npm run dev"
 echo ""
-echo "🌐 URL Akses:"
-echo "   - Dashboard Web : http://localhost:5173"
-echo "   - API Swagger   : http://localhost:8000/docs"
+echo "🌐 URL Akses Sistem:"
+echo "   - Dashboard Web UI : http://localhost:5173"
+echo "   - API Swagger Docs : http://localhost:8000/docs"
 echo "=================================================="

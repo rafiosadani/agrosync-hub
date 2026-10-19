@@ -52,10 +52,10 @@ def stop_sync():
 
 @router.post("/trigger", response_model=SyncControlResponse)
 def trigger_now():
-    """Memicu siklus sinkronisasi instan (on-demand) tanpa menunggu timer interval."""
-    success = sync_engine.trigger_now()
+    """Memicu siklus sinkronisasi instan (on-demand) 1 kali jalan tanpa perulangan interval."""
+    res = sync_engine.sync_once()
     return SyncControlResponse(
-        success=success,
+        success=res.get("success", False),
         status=sync_engine.state,
-        message="Sinkronisasi instan (on-demand) berhasil dipicu."
+        message=res.get("message", "Sinkronisasi instan (on-demand) berhasil dipicu.")
     )

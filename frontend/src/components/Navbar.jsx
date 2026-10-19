@@ -34,42 +34,60 @@ export default function Navbar({
   const toast = useToast();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const state = syncStatus?.state || 'IDLE';
+  const isLoopActive = state === 'RUNNING' || Boolean(syncStatus?.is_loop_running);
+  const isSyncing = state === 'SYNCING' || Boolean(syncStatus?.is_syncing_once) || Boolean(syncStatus?.is_active_syncing);
+  const isPaused = state === 'PAUSED';
   const [warningMessage, setWarningMessage] = useState(null);
-
-
 
   // Periksa apakah seluruh database online dan sehat
   const isDatabaseReady = systemHealth && (systemHealth.status === 'HEALTHY' || systemHealth.healthy_nodes > 0);
   const hasOfflineNodes = systemHealth && (systemHealth.offline_nodes > 0 || systemHealth.degraded_nodes > 0);
 
-  const getStatusBadge = (currentState) => {
-    switch (currentState) {
-      case 'RUNNING':
-        return (
-          <span className="badge badge-success" title="Mesin aktif: sinkronisasi otomatis berputar tiap 10 detik">
-            <span className="pulse-dot pulse-dot-green" /> LOOP AKTIF (SYNCING)
-          </span>
-        );
-      case 'PAUSED':
-        return (
-          <span className="badge badge-warning" title="Mesin ditahan sementara oleh pengguna">
-            PAUSED (DIJEDA)
-          </span>
-        );
-      case 'STOPPED':
-        return (
-          <span className="badge badge-danger" title="Siklus otomatis dimatikan">
-            STOPPED (BERHENTI)
-          </span>
-        );
-      case 'IDLE':
-      default:
-        return (
-          <span className="badge badge-info" title="Mesin siaga dan siap dijalankan kapan saja">
-            STANDBY (SIAGA)
-          </span>
-        );
+  const getStatusBadge = () => {
+    if (isSyncing) {
+      return (
+        <span 
+          className="badge badge-primary" 
+          style={{ 
+            background: 'rgba(56, 189, 248, 0.15)', 
+            color: '#0284c7', 
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }} 
+          title="Sedang memproses 1 siklus sinkronisasi data DML on-demand"
+        >
+          <RefreshCw size={11} className="animate-spin" /> ON-DEMAND SYNCING
+        </span>
+      );
     }
+    if (isLoopActive) {
+      return (
+        <span className="badge badge-success" title="Mesin aktif: sinkronisasi otomatis berputar berulang tiap interval">
+          <span className="pulse-dot pulse-dot-green" /> LOOP AKTIF (BERULANG)
+        </span>
+      );
+    }
+    if (isPaused) {
+      return (
+        <span className="badge badge-warning" title="Mesin ditahan sementara oleh pengguna">
+          PAUSED (DIJEDA)
+        </span>
+      );
+    }
+    if (state === 'STOPPED') {
+      return (
+        <span className="badge badge-danger" title="Siklus otomatis dimatikan">
+          STOPPED (BERHENTI)
+        </span>
+      );
+    }
+    return (
+      <span className="badge badge-info" title="Mesin siaga dan siap dijalankan kapan saja">
+        STANDBY (SIAGA)
+      </span>
+    );
   };
 
   // Validasi pra-koneksi sebelum mengeksekusi siklus sync
@@ -161,7 +179,7 @@ export default function Navbar({
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
               Engine State:
             </span>
-            {getStatusBadge(state)}
+            {getStatusBadge()}
           </div>
 
           {hasOfflineNodes && (
@@ -251,11 +269,13 @@ export default function Navbar({
             <span>Refresh</span>
           </button>
 
-          {/* Tombol Play / Pause */}
-          {state === 'RUNNING' ? (
+          {/* Tombol Play / Pause (Siklus Otomatis) */}
+          {isLoopActive ? (
             <button
+              type="button"
               className="btn btn-warning btn-sm"
               onClick={handlePause}
+              disabled={isSyncing}
               title="Tahan sementara siklus otomatis"
             >
               <Pause size={14} />
@@ -263,20 +283,28 @@ export default function Navbar({
             </button>
           ) : (
             <button
+              type="button"
               className="btn btn-secondary btn-sm"
               onClick={handleStartOrResume}
-              title="Mulai menjalankan siklus sinkronisasi otomatis berulang"
+              disabled={isSyncing}
+              title={
+                isSyncing 
+                  ? "Sinkronisasi on-demand sedang berlangsung, harap tunggu hingga selesai" 
+                  : (isPaused ? 'Lanjutkan siklus otomatis' : 'Mulai menjalankan siklus sinkronisasi otomatis berulang')
+              }
             >
               <Play size={14} />
-              <span>{state === 'PAUSED' ? 'Lanjutkan Siklus' : 'Mulai Siklus Otomatis'}</span>
+              <span>{isPaused ? 'Lanjutkan Siklus' : 'Mulai Siklus Otomatis'}</span>
             </button>
           )}
 
           {/* Tombol Stop (Hanya muncul jika sedang RUNNING atau PAUSED) */}
-          {(state === 'RUNNING' || state === 'PAUSED') && (
+          {(isLoopActive || isPaused) && (
             <button
+              type="button"
               className="btn btn-danger btn-sm"
               onClick={handleStop}
+              disabled={isSyncing}
               title="Hentikan total siklus otomatis dan kembali ke status Standby"
             >
               <Square size={13} />
@@ -284,14 +312,40 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Tombol Sync Now (On-Demand Single Trigger) */}
+          {/* Tombol Sync Now (On-Demand Single Trigger - Tidak Berulang) */}
           <button
+            type="button"
             className="btn btn-primary btn-sm"
             onClick={handleTrigger}
-            title="Jalankan 1 kali siklus sinkronisasi instan saat ini juga (Ideal untuk testing data baru)"
+            disabled={isLoopActive || isSyncing || isPaused}
+            title={
+              isLoopActive
+                ? "Siklus otomatis sedang aktif berulang. Sync on-demand dinonaktifkan."
+                : isSyncing
+                ? "Sedang menyinkronkan data antar node database (1 siklus)..."
+                : isPaused
+                ? "Engine sedang dijeda. Lanjutkan atau hentikan siklus terlebih dahulu."
+                : "Jalankan 1 kali siklus sinkronisasi instan tanpa perulangan interval (Testing & On-Demand)"
+            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              opacity: (isLoopActive || isPaused) ? 0.55 : 1,
+              cursor: (isLoopActive || isPaused || isSyncing) ? 'not-allowed' : 'pointer'
+            }}
           >
-            <Zap size={14} />
-            <span>Sync Now (On-Demand)</span>
+            {isSyncing ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                <span>Menyinkronkan...</span>
+              </>
+            ) : (
+              <>
+                <Zap size={14} />
+                <span>Sync Now (On-Demand)</span>
+              </>
+            )}
           </button>
         </div>
       </header>

@@ -12,10 +12,10 @@
   },
   {
     "CompanyName": "API",
-    "ServerPusat": "LAPTOP-IVSFKQ1T,1433",
+    "ServerPusat": "192.168.2.99,1433",
     "DatabasePusat": "APIdb002",
-    "UserPusat": "sync_mentor",
-    "PasswordPusat": "Sync@Mentor2026!",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
     "ServerLokal": "192.168.2.99,1435",
     "DatabaseLokal": "APIdb002",
     "UserLokal": "sa",

@@ -19,6 +19,12 @@ import {
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
 import SubnetScannerModal from '../components/SubnetScannerModal';
+import { 
+  SkeletonMetricCards, 
+  SkeletonNodeHealthCards, 
+  SkeletonActivityLog, 
+  SkeletonNodeBreakdown 
+} from '../components/Skeleton';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -29,6 +35,8 @@ export default function Overview({
   companyMetrics, 
   configs,
   recentLogs, 
+  syncStatus,
+  isLoading = false,
   onNavigateToNodes,
   onNavigateToLogs,
   onRefreshMetrics
@@ -161,49 +169,87 @@ export default function Overview({
         </div>
       </div>
 
+      {/* Live Sync Progress Indicator Banner (Task 3) */}
+      {(syncStatus?.state === 'SYNCING' || syncStatus?.is_syncing_once || syncStatus?.is_active_syncing) && (
+        <div className="sync-live-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="icon-wrapper">
+              <RefreshCw size={20} className="animate-spin" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚡ Sedang Mengeksekusi Sinkronisasi On-Demand (1 Siklus)...</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                Engine sedang memindai delta skema & mentransfer perubahan DML (INSERT/UPDATE/DELETE) secara atomik.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+              <span className="pulse-dot pulse-dot-blue" />
+              <span>LIVE ON-DEMAND</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Global DML Transaction Metrics */}
       <div>
         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px' }}>
           Statistik Transaksi DML Global
         </h3>
-        <div className="metrics-grid">
-          <MetricCard
-            title="Total Inserted"
-            value={metricsSummary?.total_inserts || 0}
-            subtitle="Baris baru disisipkan ke lokal"
-            icon={PlusCircle}
-            accentColor="#10b981"
-            trend="+ Real-time"
-          />
-          <MetricCard
-            title="Total Updated"
-            value={metricsSummary?.total_updates || 0}
-            subtitle="Baris disinkronkan perbedaan kolom"
-            icon={RefreshCw}
-            accentColor="#06b6d4"
-            trend="Column-Level"
-          />
-          <MetricCard
-            title="Total Deleted"
-            value={metricsSummary?.total_deletes || 0}
-            subtitle="Baris usang dibersihkan"
-            icon={Trash2}
-            accentColor="#f43f5e"
-            trend="Zero-Orphan"
-          />
-          <MetricCard
-            title="Total Transaksi DML"
-            value={metricsSummary?.total_transactions || 0}
-            subtitle={`Siklus #${metricsSummary?.current_cycle || 0} Berjalan`}
-            icon={Activity}
-            accentColor="#6366f1"
-            trend="Active Loop"
-          />
-        </div>
+        {isLoading ? (
+          <SkeletonMetricCards />
+        ) : (
+          <div className="metrics-grid">
+            <MetricCard
+              title="Total Inserted"
+              value={metricsSummary?.total_inserts || 0}
+              subtitle="Baris baru disisipkan ke lokal"
+              icon={PlusCircle}
+              accentColor="#10b981"
+              trend="+ Real-time"
+            />
+            <MetricCard
+              title="Total Updated"
+              value={metricsSummary?.total_updates || 0}
+              subtitle="Baris disinkronkan perbedaan kolom"
+              icon={RefreshCw}
+              accentColor="#06b6d4"
+              trend="Column-Level"
+            />
+            <MetricCard
+              title="Total Deleted"
+              value={metricsSummary?.total_deletes || 0}
+              subtitle="Baris usang dibersihkan"
+              icon={Trash2}
+              accentColor="#f43f5e"
+              trend="Zero-Orphan"
+            />
+            <MetricCard
+              title="Total Transaksi DML"
+              value={metricsSummary?.total_transactions || 0}
+              subtitle={`Siklus #${metricsSummary?.current_cycle || 0} Berjalan`}
+              icon={Activity}
+              accentColor="#6366f1"
+              trend="Active Loop"
+            />
+          </div>
+        )}
       </div>
 
       {/* Per Database Node Breakdown */}
-      {displayNodes.length > 0 && (
+      {isLoading ? (
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Aktivitas Transaksi Per Database Node
+            </h3>
+          </div>
+          <SkeletonNodeBreakdown count={configs?.length || 2} />
+        </div>
+      ) : displayNodes.length > 0 && (
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
@@ -362,11 +408,15 @@ export default function Overview({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px' }}>
-          {systemHealth?.nodes?.map((node) => (
-            <NodeHealthCard key={node.id} node={node} />
-          ))}
-        </div>
+        {isLoading ? (
+          <SkeletonNodeHealthCards count={configs?.length || 3} />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px' }}>
+            {systemHealth?.nodes?.map((node) => (
+              <NodeHealthCard key={node.id} node={node} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Recent Activity Log Preview */}
@@ -381,47 +431,51 @@ export default function Overview({
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {recentLogs && recentLogs.length > 0 ? (
-            recentLogs.slice(0, 5).map((log) => (
-              <div
-                key={log.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  background: 'var(--bg-card-inner)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-subtle)',
-                  fontSize: '0.84rem',
-                  boxShadow: 'var(--shadow-card, var(--shadow-sm))'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span className={`badge ${
-                    log.level === 'SUCCESS' ? 'badge-success' :
-                    log.level === 'ERROR' ? 'badge-danger' :
-                    log.level === 'WARNING' ? 'badge-warning' : 'badge-info'
-                  }`} style={{ fontSize: '0.7rem' }}>
-                    {log.level}
+        {isLoading ? (
+          <SkeletonActivityLog count={5} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {recentLogs && recentLogs.length > 0 ? (
+              recentLogs.slice(0, 5).map((log) => (
+                <div
+                  key={log.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: 'var(--bg-card-inner)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '0.84rem',
+                    boxShadow: 'var(--shadow-card, var(--shadow-sm))'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className={`badge ${
+                      log.level === 'SUCCESS' ? 'badge-success' :
+                      log.level === 'ERROR' ? 'badge-danger' :
+                      log.level === 'WARNING' ? 'badge-warning' : 'badge-info'
+                    }`} style={{ fontSize: '0.7rem' }}>
+                      {log.level}
+                    </span>
+                    {log.company_name && (
+                      <strong style={{ color: '#10b981' }}>[{log.company_name}]</strong>
+                    )}
+                    <span style={{ color: 'var(--text-primary)' }}>{log.message}</span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '16px' }}>
+                    {log.timestamp}
                   </span>
-                  {log.company_name && (
-                    <strong style={{ color: '#10b981' }}>[{log.company_name}]</strong>
-                  )}
-                  <span style={{ color: 'var(--text-primary)' }}>{log.message}</span>
                 </div>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '16px' }}>
-                  {log.timestamp}
-                </span>
+              ))
+            ) : (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Belum ada log aktivitas tercatat. Jalankan siklus sinkronisasi untuk memantau.
               </div>
-            ))
-          ) : (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Belum ada log aktivitas tercatat. Jalankan siklus sinkronisasi untuk memantau.
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Subnet Scanner Modal */}

@@ -65,6 +65,8 @@
   --terminal-header-bg: #121215;
   --scrollbar-thumb: #27272a;
   --scrollbar-thumb-hover: #3f3f46;
+  --skeleton-base: #1c1c22;
+  --skeleton-highlight: #2a2a33;
 }
 
 /* Light Theme ([data-theme='light']) */
@@ -107,6 +109,8 @@
   --terminal-header-bg: #1e293b;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
+  --skeleton-base: #e2e8f0;
+  --skeleton-highlight: #f1f5f9;
 }
 
 /* Fallback for system light mode */
@@ -1158,4 +1162,94 @@ select.form-input {
 
 [data-theme='dark'] .health-error-box {
   color: #fb7185;
+}
+
+/* ==========================================================================
+   Skeleton Loading Animation & Shimmer Effects (Task 6)
+   ========================================================================== */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+.skeleton-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-card, var(--shadow-sm));
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   Live Sync Indicator & Banner (Task 3)
+   ========================================================================== */
+@keyframes pulse-banner-glow {
+  0%, 100% {
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+  }
+  50% {
+    border-color: rgba(56, 189, 248, 0.75);
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+  }
+}
+
+.sync-live-banner {
+  background: var(--bg-card);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  animation: pulse-banner-glow 2.2s ease-in-out infinite;
+  box-shadow: var(--shadow-card, var(--shadow-sm));
+}
+
+.sync-live-banner .icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: rgba(56, 189, 248, 0.12);
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+[data-theme='dark'] .sync-live-banner .icon-wrapper {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.pulse-dot-blue {
+  background: #0284c7;
+  box-shadow: 0 0 8px #0284c7;
+}
+
+[data-theme='dark'] .pulse-dot-blue {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
 }

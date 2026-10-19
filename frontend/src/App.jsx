@@ -20,6 +20,7 @@ export default function App() {
   const [recentLogs, setRecentLogs] = useState([]);
   const [syncStatus, setSyncStatus] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('agrosync_sidebar_collapsed') === 'true';
   });
@@ -54,6 +55,7 @@ export default function App() {
       console.error("Gagal memuat data dashboard:", err);
     } finally {
       setIsRefreshing(false);
+      setIsInitialLoading(false);
     }
   };
 
@@ -66,10 +68,38 @@ export default function App() {
 
   const handleTriggerSync = async () => {
     try {
-      toast.info('Sinkronisasi Dipicu', 'Memulai siklus sinkronisasi data DML on-demand...');
-      await api.triggerSync();
-      toast.success('Sinkronisasi Berjalan', 'Engine sinkronisasi sedang memproses tabel.');
-      setTimeout(() => fetchDashboardData(true), 500);
+      const res = await api.triggerSync();
+      if (res && res.success === false) {
+        toast.warning('Sinkronisasi Ditolak', res.message || 'Tidak dapat memulai sinkronisasi on-demand saat ini.');
+        return;
+      }
+
+      toast.info('Sinkronisasi Dipicu', res?.message || 'Memulai 1 siklus sinkronisasi data DML on-demand...');
+      setSyncStatus(prev => ({
+        ...prev,
+        state: 'SYNCING',
+        is_syncing_once: true,
+        is_active_syncing: true
+      }));
+
+      // Polling cepat setiap 1.5 detik selama on-demand sync berlangsung
+      const pollTimer = setInterval(async () => {
+        try {
+          const status = await api.getSyncStatus();
+          if (status) {
+            setSyncStatus(status);
+            if (status.state !== 'SYNCING' && !status.is_syncing_once && !status.is_active_syncing) {
+              clearInterval(pollTimer);
+              toast.success('Sinkronisasi Selesai', 'Siklus sinkronisasi 1 kali jalan telah rampung.');
+              fetchDashboardData(true);
+            }
+          }
+        } catch (e) {
+          clearInterval(pollTimer);
+        }
+      }, 1500);
+
+      setTimeout(() => clearInterval(pollTimer), 60000);
     } catch (err) {
       toast.error('Gagal Memicu Sinkronisasi', err.message);
     }
@@ -108,6 +138,8 @@ export default function App() {
               companyMetrics={companyMetrics}
               configs={configs}
               recentLogs={recentLogs}
+              syncStatus={syncStatus}
+              isLoading={isInitialLoading}
               onNavigateToNodes={() => setCurrentTab('nodes')}
               onNavigateToLogs={() => setCurrentTab('logs')}
               onRefreshMetrics={fetchDashboardData}

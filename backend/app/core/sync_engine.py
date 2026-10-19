@@ -147,10 +147,12 @@ class EnterpriseSyncEngine:
         self._lock = threading.RLock()
 
         # Engine State
-        self.state: str = "IDLE"  # "IDLE", "RUNNING", "PAUSED", "STOPPED", "ERROR"
+        self.state: str = "IDLE"  # "IDLE", "RUNNING", "PAUSED", "STOPPED", "ERROR", "SYNCING"
         self.last_sync_time: Optional[str] = None
         self.current_cycle: int = 0
         self.interval_seconds: int = 10
+        self.is_active_syncing: bool = False
+        self.is_syncing_once: bool = False
 
         # In-Memory Metrics State
         self.total_inserts: int = 0
@@ -462,7 +464,10 @@ class EnterpriseSyncEngine:
                 "total_deletes": self.total_deletes,
                 "total_transactions": self.total_inserts + self.total_updates + self.total_deletes,
                 "metrics_by_company": self.metrics_by_company,
-                "interval_seconds": self.interval_seconds
+                "interval_seconds": self.interval_seconds,
+                "is_active_syncing": self.is_active_syncing,
+                "is_syncing_once": self.is_syncing_once,
+                "is_loop_running": bool(self._thread and self._thread.is_alive() and not self._stop_event.is_set() and self.state in ("RUNNING", "PAUSED"))
             }
 
     def start(self):
@@ -511,13 +516,87 @@ class EnterpriseSyncEngine:
             self.add_log("INFO", "Siklus sinkronisasi dihentikan.")
             return True
 
+    def sync_once(self) -> Dict[str, Any]:
+        """
+        Menjalankan tepat 1 kali siklus sinkronisasi instan (on-demand) tanpa mengaktifkan loop berulang.
+        Memiliki proteksi timbal-balik agar tidak bertabrakan dengan siklus otomatis.
+        """
+        with self._lock:
+            if self.state == "RUNNING":
+                return {
+                    "success": False,
+                    "message": "Siklus otomatis sedang berjalan aktif berulang. Sync on-demand dinonaktifkan."
+                }
+            if self.is_syncing_once or self.is_active_syncing:
+                return {
+                    "success": False,
+                    "message": "Siklus sinkronisasi sedang berlangsung. Harap tunggu hingga selesai."
+                }
+            if self.state == "PAUSED":
+                return {
+                    "success": False,
+                    "message": "Sistem sedang dijeda. Lanjutkan atau hentikan siklus sebelum menjalankan on-demand."
+                }
+
+            self.state = "SYNCING"
+            self.is_syncing_once = True
+
+        def _worker_once():
+            try:
+                self._execute_sync_cycle(cycle_type="on_demand")
+            finally:
+                with self._lock:
+                    self.is_syncing_once = False
+                    if self.state == "SYNCING":
+                        self.state = "IDLE"
+
+        thread = threading.Thread(target=_worker_once, daemon=True)
+        thread.start()
+        return {
+            "success": True,
+            "message": "Siklus sinkronisasi 1 kali jalan (on-demand) berhasil dimulai."
+        }
+
     def trigger_now(self):
-        """Memaksa siklus sinkronisasi berjalan saat ini juga tanpa menunggu interval timer"""
-        if self.state in ("STOPPED", "IDLE"):
-            self.start()
-        self._trigger_event.set()
-        self.add_log("INFO", "Sinkronisasi on-demand dipicu secara manual.")
-        return True
+        """Memaksa siklus sinkronisasi berjalan saat ini juga: jika loop aktif, bypass interval; jika standby, jalankan 1 siklus."""
+        with self._lock:
+            if self.state == "RUNNING":
+                self._trigger_event.set()
+                self.add_log("INFO", "Siklus otomatis dipercepat (interval di-bypass).")
+                return True
+        return self.sync_once().get("success", False)
+
+    def _execute_sync_cycle(self, cycle_type: str = "auto"):
+        """Menjalankan 1 siklus pemrosesan sinkronisasi data DML untuk seluruh node aktif"""
+        with self._lock:
+            self.current_cycle += 1
+            cycle_num = self.current_cycle
+            self.is_active_syncing = True
+
+        start_cycle_time = datetime.now()
+        prefix = "⚡ On-Demand" if cycle_type == "on_demand" else "🔄 Auto-Loop"
+
+        try:
+            configs = ConfigManager.get_all_raw()
+            if not configs:
+                self.add_log("WARNING", f"{prefix}: Tidak ada node database dalam sync_config.json.")
+            else:
+                self.add_log("INFO", f"{prefix} #{cycle_num} dimulai: memproses {len(configs)} node database.")
+                for cfg in configs:
+                    if self._stop_event.is_set() and cycle_type == "auto":
+                        break
+                    self._sync_single_node(cfg)
+
+            self.last_sync_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            duration = round((datetime.now() - start_cycle_time).total_seconds(), 2)
+            self.add_log("SUCCESS", f"✅ {prefix} #{cycle_num} selesai dalam {duration}s.")
+        except Exception as e:
+            if cycle_type == "auto":
+                self.state = "ERROR"
+            self.add_log("ERROR", f"Kesalahan kritis pada siklus sync ({prefix}): {str(e)}")
+        finally:
+            with self._lock:
+                self.is_active_syncing = False
 
     def _worker_loop(self):
         while not self._stop_event.is_set():
@@ -527,31 +606,12 @@ class EnterpriseSyncEngine:
                 break
 
             self.state = "RUNNING"
-            self.current_cycle += 1
-            start_cycle_time = datetime.now()
+            self._execute_sync_cycle(cycle_type="auto")
 
-            try:
-                configs = ConfigManager.get_all_raw()
-                if not configs:
-                    self.add_log("WARNING", "Tidak ada node database dalam sync_config.json.")
-                else:
-                    self.add_log("INFO", f"🔄 Siklus #{self.current_cycle} dimulai: memproses {len(configs)} node database.")
-                    for cfg in configs:
-                        if self._stop_event.is_set():
-                            break
-                        self._sync_single_node(cfg)
+            if self._stop_event.is_set():
+                break
 
-                self.last_sync_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                duration = round((datetime.now() - start_cycle_time).total_seconds(), 2)
-                self.add_log("SUCCESS", f"✅ Siklus #{self.current_cycle} selesai dalam {duration}s.")
-            except Exception as e:
-                self.state = "ERROR"
-                self.add_log("ERROR", f"Kesalahan kritis pada siklus sync: {str(e)}")
-
-            if self.state != "PAUSED" and self.state != "STOPPED":
-                self.state = "IDLE"
-
-            # Tunggu interval atau hingga event on-demand trigger dipanggil
+            # Tetap berstatus RUNNING (loop aktif), jangan diubah ke IDLE saat menunggu jeda interval
             self._trigger_event.wait(timeout=self.interval_seconds)
             self._trigger_event.clear()
 
