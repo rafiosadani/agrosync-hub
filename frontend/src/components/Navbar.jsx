@@ -13,7 +13,8 @@ import {
   Moon,
   Monitor,
   PanelLeftOpen,
-  Server
+  Server,
+  X
 } from 'lucide-react';
 import { api } from '../api';
 import { useToast } from './Toast';
@@ -297,15 +298,32 @@ export default function Navbar({
 
       {/* Modal Peringatan Jika Database Belum Siap / Belum Konek */}
       {warningMessage && (
-        <div className="modal-overlay" onClick={() => setWarningMessage(null)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className="modal-header" style={{ borderBottomColor: 'var(--border-subtle)' }}>
+            <div className="modal-header" style={{ borderBottomColor: 'var(--border-subtle)', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b' }}>
                 <AlertTriangle size={20} />
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Pencegahan: Database Belum Siap
                 </h3>
               </div>
+              <button
+                type="button"
+                onClick={() => setWarningMessage(null)}
+                aria-label="Tutup Peringatan"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: 'var(--radius-sm)'
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
             
             <div className="modal-body" style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>

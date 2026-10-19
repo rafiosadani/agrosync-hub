@@ -27,7 +27,7 @@ Sebelum merancang dan mengintegrasikan dashboard web, telah dilakukan peninjauan
 * **Identifikasi Masalah & Solusi Penyelarasan:**
   1. *Tightly Coupled Loop*: Kode asli menggunakan loop tak berujung `while True:` dengan `time.sleep(10)` tanpa antarmuka kontrol eksternal. Kami mengabstraksikannya ke dalam `backend/app/core/sync_engine.py` dengan thread controller aman berbasis `threading.RLock()` dan event flags (`_stop_event`, `_pause_event`, `_trigger_event`), sehingga pengguna dapat melakukan **Start**, **Pause**, **Resume**, **Stop**, dan **Trigger On-Demand** langsung dari Web Dashboard.
   2. *Error Suppression*: Kode asli memiliki blok `except Exception as e: pass` yang menelan error constraint/koneksi tanpa jejak. Kami menambahkan pencatatan event log terstruktur ke dalam buffer log dengan level `WARNING`/`ERROR` agar operator sistem segera mengetahui kegagalan DML tertentu.
-  3. *Driver Hardcoding*: Skrip asli mengikat kaku `ODBC Driver 18 for SQL Server`. Kami menambahkan deteksi driver dinamis dengan fallback ke driver ODBC yang terpasang di OS (misal Driver 17 atau FreeTDS) agar portabel saat dipindahkan ke mesin mentor.
+  3. *Driver Hardcoding*: Skrip asli mengikat kaku `ODBC Driver 18 for SQL Server`. Kami menambahkan deteksi driver dinamis dengan fallback ke driver ODBC yang terpasang di OS (misal Driver 17 atau FreeTDS) agar portabel saat dipindahkan ke mesin remote / host lain.
 
 ### B. Skrip Migrasi DDL Cerdas (`migrate_schema.py`)
 * **Kelebihan yang Dipertahankan:**
@@ -129,10 +129,10 @@ Dibangun dengan **React**, arsitektur komponen modular, dan sistem desain CSS Da
 
 ## 5. Panduan Integrasi & Pengujian Multi-Device (Tahap 2)
 
-Tahap ini menguji komunikasi jaringan nyata antara laptop Anda (host backend/database) dengan laptop mentor:
+Tahap ini menguji komunikasi jaringan nyata antara laptop Anda (host backend/database) dengan perangkat remote (Server Pusat di laptop/PC lain):
 
 ### Langkah 1: Hubungkan ke Jaringan Wi-Fi/LAN yang Sama
-Pastikan kedua laptop terhubung ke router Wi-Fi atau hotspot yang sama.
+Pastikan kedua perangkat terhubung ke router Wi-Fi atau hotspot yang sama.
 Cari alamat IP lokal laptop Anda:
 ```bash
 # Pada macOS / Linux:
@@ -150,7 +150,7 @@ Pastikan SQL Server mendengarkan koneksi TCP/IP pada semua interface (`0.0.0.0`)
 *(Jika menggunakan Docker, mapping port sudah aktif: `0.0.0.0:1433->1433/tcp` dan `0.0.0.0:1434->1433/tcp`).*
 
 ### Langkah 3: Konfigurasi Firewall Laptop Anda
-Buka port-port berikut agar dapat diakses dari laptop mentor:
+Buka port-port berikut agar dapat diakses dari perangkat remote / laptop client:
 - **Port 8000** : FastAPI Backend REST API
 - **Port 5173** : Frontend Web Dashboard (Vite)
 - **Port 1433 & 1434** : SQL Server Instance
@@ -165,8 +165,8 @@ python3 run_backend.py
 cd frontend && npm run dev -- --host 0.0.0.0
 ```
 
-### Langkah 5: Akses dari Browser Laptop Mentor
-Di laptop mentor, buka browser dan masukkan URL:
+### Langkah 5: Akses dari Browser Perangkat Jaringan (Remote)
+Di perangkat remote, buka browser dan masukkan URL:
 ```text
 http://192.168.2.158:5173
 ```
@@ -175,9 +175,9 @@ Dan dokumentasi API interaktif (Swagger):
 http://192.168.2.158:8000/docs
 ```
 
-### Langkah 6: Skenario Uji Coba Bersama Mentor
-1. Pada menu **Config & Node Manager**, mentor dapat melihat konfigurasi node yang sedang aktif.
-2. Mentor dapat memasukkan alamat IP laptopnya sendiri jika ingin menjadikan laptopnya sebagai salah satu node SQL Server.
+### Langkah 6: Skenario Uji Coba Lintas Perangkat (Multi-Device)
+1. Pada menu **Config & Node Manager**, operator dapat melihat konfigurasi node yang sedang aktif.
+2. Operator dapat memasukkan alamat IP / Hostname laptopnya jika ingin menjadikan laptopnya sebagai salah satu node SQL Server.
 3. Klik tombol **Test Koneksi** untuk melihat latensi antar-laptop.
 4. Lakukan penambahan atau perubahan baris data pada salah satu tabel di database pusat.
 5. Klik **Sync Now (On-Demand)** atau biarkan siklus berjalan otomatis.

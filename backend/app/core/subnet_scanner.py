@@ -115,16 +115,6 @@ def scan_subnet_sql_servers(subnet_prefix: Optional[str] = None, port: int = 143
                 if dev.get("hostname"):
                     break
 
-        if not dev.get("hostname"):
-            for cand in ("LAPTOP-IVSFKQ1T.local",):
-                try:
-                    if socket.gethostbyname(cand) == dev_ip:
-                        dev["hostname"] = cand.replace(".local", "")
-                        dev["mdns_hostname"] = cand
-                        break
-                except Exception:
-                    pass
-
         if dev.get("hostname") and not dev.get("mdns_hostname"):
             h = dev["hostname"]
             dev["mdns_hostname"] = h if h.endswith(".local") else f"{h}.local"

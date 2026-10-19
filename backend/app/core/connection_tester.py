@@ -10,7 +10,7 @@ def normalize_server_address(server: str) -> str:
     """
     Normalisasi alamat server SQL Server:
     1. 'localhost' -> '127.0.0.1' (menghindari delay IPv6 ::1 pada macOS/Linux).
-    2. Hostname Windows tunggal tanpa dot (misal 'LAPTOP-IVSFKQ1T') -> dicoba resolve as-is,
+    2. Hostname Windows tunggal tanpa dot (misal 'WIN-SERVER-01') -> dicoba resolve as-is,
        jika gagal, otomatis dicoba dengan suffix '.local' (mDNS Bonjour di macOS/Linux).
     """
     if not server:
@@ -39,7 +39,7 @@ def normalize_server_address(server: str) -> str:
     except Exception:
         pass
 
-    # Jika hostname tanpa dot (misal 'LAPTOP-IVSFKQ1T')
+    # Jika hostname tanpa dot (misal 'WIN-SERVER-01')
     if "." not in host:
         try:
             socket.gethostbyname(host)

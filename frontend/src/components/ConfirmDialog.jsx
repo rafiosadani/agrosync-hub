@@ -73,7 +73,6 @@ export function ConfirmDialogProvider({ children }) {
             padding: '16px',
             animation: 'fadeIn 0.15s ease-out'
           }}
-          onClick={handleClose}
         >
           <div
             style={{

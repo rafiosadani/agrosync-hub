@@ -1,29 +1,18 @@
 [
   {
     "CompanyName": "API",
-    "ServerPusat": "192.168.2.126,1433",
+    "ServerPusat": "192.168.2.99,1433",
     "DatabasePusat": "APIdb001",
-    "UserPusat": "sync_mentor",
-    "PasswordPusat": "Sync@Mentor2026!",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
     "ServerLokal": "rafioosadanis-MacBook-Air.local,1435",
     "DatabaseLokal": "APIdb001",
     "UserLokal": "sa",
     "PasswordLokal": "Xy#9pL$2vN!k4W"
   },
   {
-    "CompanyName": "AGC",
-    "ServerPusat": "192.168.2.126,1433",
-    "DatabasePusat": "AGCdb001",
-    "UserPusat": "sync_mentor",
-    "PasswordPusat": "Sync@Mentor2026!",
-    "ServerLokal": "rafioosadanis-MacBook-Air.local,1435",
-    "DatabaseLokal": "AGCdb001",
-    "UserLokal": "sa",
-    "PasswordLokal": "Xy#9pL$2vN!k4W"
-  },
-  {
     "CompanyName": "API",
-    "ServerPusat": "192.168.2.126,1433",
+    "ServerPusat": "LAPTOP-IVSFKQ1T,1433",
     "DatabasePusat": "APIdb002",
     "UserPusat": "sync_mentor",
     "PasswordPusat": "Sync@Mentor2026!",

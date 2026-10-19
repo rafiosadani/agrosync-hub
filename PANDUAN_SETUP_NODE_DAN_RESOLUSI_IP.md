@@ -22,9 +22,9 @@ Setiap database perusahaan (seperti `API`, `AGC`, `TTM`) yang ingin disinkronkan
 ### A. Persiapan Data yang Dibutuhkan
 Sebelum membuka form, siapkan informasi berikut:
 1. **Nama Entitas / Perusahaan:** Contoh: `AGC`, `API`, atau `TTM`.
-2. **Server Pusat (Source):** Alamat IP / Hostname dan port server sumber. Contoh: `192.168.2.126,1433` atau `LAPTOP-MENTOR,1433`.
+2. **Server Pusat (Source):** Alamat IP / Hostname dan port server sumber. Contoh: `192.168.1.100,1433` atau `WIN-SERVER-01,1433`.
 3. **Database Pusat:** Nama database di server pusat. Contoh: `AGCdb001`.
-4. **User & Password Pusat:** Login SQL Server pusat. Contoh: User `sync_mentor` & Password `Sync@Mentor2026!`.
+4. **User & Password Pusat:** Login SQL Server pusat. Contoh: User `sa` & Password `PasswordSQLServerPusat`.
 5. **Server Lokal (Target):** Alamat IP / Hostname dan port laptop lokal. Contoh: `192.168.2.99,1435` atau `localhost,1434`.
 6. **Database Lokal:** Nama database lokal target. Contoh: `AGCdb001`.
 7. **User & Password Lokal:** Login SQL Server lokal. Contoh: User `sa` & Password `PasswordSQLServer`.
@@ -102,14 +102,14 @@ Ketika laptop berpindah lokasi atau terhubung ulang ke WiFi kantor/rumah, router
 SQL Server tidak mewajibkan penulisan IP berupa angka. Kita bisa langsung menggunakan **Nama Komputer (Hostname)** perangkat.
 
 #### Mengapa Opsi Ini Sangat Praktis?
-Di dalam jaringan WiFi yang sama, sistem operasi (Windows & macOS) saling mengenali nama komputer melalui protokol **mDNS (Multicast DNS / Zeroconf)** dan **NetBIOS**. Besok lusa IP laptop mentor berubah dari `192.168.2.126` menjadi `192.168.2.150`, **nama komputernya tetap sama** dan sistem akan otomatis mencari IP barunya sendiri tanpa agan perlu mengganti konfigurasi!
+Di dalam jaringan WiFi yang sama, sistem operasi (Windows & macOS) saling mengenali nama komputer melalui protokol **mDNS (Multicast DNS / Zeroconf)** dan **NetBIOS**. Besok lusa IP laptop Server Pusat berubah dari `192.168.1.100` menjadi `192.168.1.150`, **nama komputernya tetap sama** dan sistem akan otomatis mencari IP barunya sendiri tanpa agan perlu mengganti konfigurasi!
 
-#### 1. Cara Mengetahui Hostname Laptop Mentor (Windows)
-Minta mentor membuka **Command Prompt (CMD)** atau **PowerShell**, lalu ketik:
+#### 1. Cara Mengetahui Hostname Komputer Server Pusat (Windows)
+Buka **Command Prompt (CMD)** atau **PowerShell** di komputer Server Pusat, lalu ketik:
 ```powershell
 hostname
 ```
-*Contoh hasil:* `LAPTOP-MENTOR` atau `DESKTOP-8K3N9P1`.
+*Contoh hasil:* `WIN-SERVER-01` atau `DESKTOP-8K3N9P1`.
 
 #### 2. Cara Mengetahui Hostname Laptop Agan (macOS)
 Buka aplikasi **Terminal** di Mac, lalu ketik:
@@ -119,27 +119,27 @@ hostname
 *Contoh hasil:* `rafioosadanis-MacBook-Air.local`.
 
 #### 3. Cara Memasukkan ke AgroSync Hub
-Di menu **Manajemen Node** (edit node):
-- Kolom **Server Pusat**: Ganti `192.168.2.126,1433` menjadi:
-  `LAPTOP-MENTOR,1433` atau `LAPTOP-MENTOR.local,1433`
-- Kolom **Server Lokal**: Ganti `192.168.2.99,1435` menjadi:
-  `rafioosadanis-MacBook-Air.local,1435` (atau cukup `localhost,1435` jika engine berjalan di laptop yang sama).
+Di menu **Manajemen Node** (tambah/edit node):
+- Kolom **Server Pusat**: Masukkan Hostname:
+  `WIN-SERVER-01,1433` atau `WIN-SERVER-01.local,1433`
+- Kolom **Server Lokal**: Masukkan Hostname lokal:
+  `rafioosadanis-MacBook-Air.local,1433` (atau cukup `localhost,1433` jika engine berjalan di laptop yang sama).
 - Klik **Simpan**. Selesai!
 
 > [!IMPORTANT]
-> **Catatan Penting Opsi 1:** Penggunaan Hostname lokal (`.local`) **tetap mewajibkan kedua laptop berada dalam satu jaringan WiFi / LAN yang sama**.
+> **Catatan Penting Opsi 1:** Penggunaan Hostname lokal (`.local`) **tetap mewajibkan kedua perangkat berada dalam satu jaringan WiFi / LAN yang sama**.
 
 ---
 
 ### Opsi 3: Menggunakan Mesh VPN / Tailscale (Standar Enterprise & WFH)
 
-Jika agan dan mentor bekerja di ruangan berbeda, beda jaringan WiFi, atau mentor bekerja dari rumah (**WFH / Remote**), maka Opsi 1 tidak bisa tembus. Solusi standar industri modern yang paling aman dan mudah adalah **[Tailscale](https://tailscale.com/)** (gratis).
+Jika Server Pusat berada di lokasi berbeda, beda jaringan WiFi, atau bekerja dari rumah (**WFH / Remote**), maka Opsi 1 tidak bisa tembus. Solusi standar industri modern yang paling aman dan mudah adalah **[Tailscale](https://tailscale.com/)** (gratis).
 
 #### Apa Itu Tailscale?
-Tailscale menghubungkan laptop agan dan laptop mentor ke dalam satu "jaringan kabel virtual pribadi" yang terenkripsi aman (*WireGuard Mesh VPN*). Setiap laptop akan diberi **IP Virtual Statis Permanen** yang tidak akan pernah berubah seumur hidup.
+Tailscale menghubungkan laptop agan dan komputer Server Pusat ke dalam satu "jaringan kabel virtual pribadi" yang terenkripsi aman (*WireGuard Mesh VPN*). Setiap perangkat akan diberi **IP Virtual Statis Permanen** yang tidak akan pernah berubah seumur hidup.
 
 #### 1. Langkah Pemasangan (Hanya 3 Menit)
-1. Buka [https://tailscale.com](https://tailscale.com) di laptop agan dan laptop mentor.
+1. Buka [https://tailscale.com](https://tailscale.com) di laptop agan dan komputer Server Pusat.
 2. Download dan install aplikasinya (tersedia untuk Windows dan Mac).
 3. Login menggunakan akun Google atau GitHub yang sama (atau gunakan fitur *Tailscale Share Node / Invite*).
 4. Klik icon Tailscale di taskbar/menu bar untuk menyalakan koneksi (*Connected*).
@@ -147,16 +147,16 @@ Tailscale menghubungkan laptop agan dan laptop mentor ke dalam satu "jaringan ka
 #### 2. Cara Melihat IP Tailscale
 - Di aplikasi Tailscale masing-masing laptop, akan muncul IP berawalan `100.x.y.z`.
 - Contoh:
-  - Laptop Mentor: `100.85.20.110` (nama: `mentor-pc`)
-  - Laptop Agan: `100.85.20.125` (nama: `rafi-macbook`)
+  - Komputer Server Pusat: `100.85.20.110` (nama: `server-pusat`)
+  - Laptop Lokal: `100.85.20.125` (nama: `rafi-macbook`)
 
 #### 3. Cara Memasukkan ke AgroSync Hub
 Di menu **Manajemen Node**:
-- **Server Pusat**: Masukkan IP Tailscale mentor: `100.85.20.110,1433`
-- **Server Lokal**: Masukkan IP Tailscale lokal: `100.85.20.125,1435` (atau `localhost,1435`)
+- **Server Pusat**: Masukkan IP Tailscale pusat: `100.85.20.110,1433`
+- **Server Lokal**: Masukkan IP Tailscale lokal: `100.85.20.125,1433` (atau `localhost,1433`)
 
 #### Keunggulan Luar Biasa Opsi 3:
-- **Beda Jaringan Tetap Konek:** Laptop mentor di rumah pakai WiFi Indihome, agan di kantor pakai WiFi kantor, atau tethering HP -> **Sinkronisasi tetap berjalan lancar!**
+- **Beda Jaringan Tetap Konek:** Server Pusat di kantor, laptop lokal di rumah pakai WiFi Indihome atau tethering HP -> **Sinkronisasi tetap berjalan lancar!**
 - **IP Permanen:** Mau restart laptop 100 kali, IP `100.85.20.110` tidak akan pernah berubah.
 - **Keamanan Tingkat Tinggi:** Koneksi dienkripsi penuh, aman dari penyadapan di WiFi publik.
 
@@ -170,19 +170,19 @@ Jika besok pagi kartu status node berwarna merah (**OFFLINE**):
 flowchart TD
     A["Kartu Node Status: OFFLINE"] --> B{"Metode Koneksi yang Digunakan?"}
     
-    B -->|"Menggunakan IP Angka (192.168.x.x)"| C["Cek apakah IP Mentor berubah:<br/>Minta mentor cek IP via ipconfig di Windows"]
+    B -->|"Menggunakan IP Angka (192.168.x.x)"| C["Cek apakah IP Server Pusat berubah:<br/>Cek IP via ipconfig di Windows Server Pusat"]
     C --> D["Buka menu Manajemen Node -> Edit Node<br/>Update alamat IP baru -> Simpan"]
     
-    B -->|"Menggunakan Hostname (.local)"| E["Pastikan kedua laptop tersambung ke WiFi yang sama.<br/>Cek ping nama-komputer.local"]
+    B -->|"Menggunakan Hostname (.local)"| E["Pastikan kedua perangkat tersambung ke WiFi yang sama.<br/>Cek ping nama-komputer.local"]
     
-    B -->|"Menggunakan Tailscale"| F["Pastikan icon Tailscale di kedua laptop berstatus Connected.<br/>Koneksi langsung pulih otomatis."]
+    B -->|"Menggunakan Tailscale"| F["Pastikan icon Tailscale di kedua perangkat berstatus Connected.<br/>Koneksi langsung pulih otomatis."]
 ```
 
 1. **Jika Menggunakan IP Angka Biasa:**
-   - Kemungkinan besar router kantor telah mengganti IP laptop mentor.
-   - Minta mentor membuka CMD dan ketik `ipconfig` untuk melihat IP barunya.
-   - Buka menu **Manajemen Node** di AgroSync Hub, klik tombol **Edit** (ikon pensil), ganti nomor IP dengan yang baru, lalu klik **Simpan**.
+   - Kemungkinan besar router kantor telah mengganti IP komputer Server Pusat.
+   - Buka CMD di komputer server dan ketik `ipconfig` untuk melihat IP barunya (atau gunakan tombol **Pindai Subnet** di web dashboard).
+   - Buka menu **Manajemen Node** di AgroSync Hub, klik tombol **Edit** (ikon pensil), pilih/ganti nomor IP baru, lalu klik **Simpan**.
 2. **Jika Menggunakan Hostname (Opsi 1):**
-   - Pastikan laptop agan dan laptop mentor sama-sama terhubung ke SSID WiFi yang sama (bukan yang satu di WiFi Tamu dan satu di WiFi Kantor).
+   - Pastikan laptop agan dan komputer Server Pusat sama-sama terhubung ke SSID WiFi yang sama (bukan yang satu di WiFi Tamu dan satu di WiFi Kantor).
 3. **Jika Menggunakan Tailscale (Opsi 3):**
-   - Pastikan aplikasi Tailscale di laptop mentor dan laptop agan sama-sama dalam kondisi menyala (*Connected*).
+   - Pastikan aplikasi Tailscale di komputer Server Pusat dan laptop lokal sama-sama dalam kondisi menyala (*Connected*).

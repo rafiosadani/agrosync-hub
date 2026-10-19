@@ -14,7 +14,9 @@ import {
   Database,
   AlertTriangle,
   Radar,
-  Wifi
+  Wifi,
+  Laptop,
+  ChevronDown
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import SubnetScannerModal from '../components/SubnetScannerModal';
@@ -66,6 +68,28 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   const [isSaving, setIsSaving] = useState(false);
   const [showModalPassPusat, setShowModalPassPusat] = useState(false);
   const [showModalPassLokal, setShowModalPassLokal] = useState(false);
+  const [scannerTargetRole, setScannerTargetRole] = useState('pusat');
+  const [showLocalHostMenu, setShowLocalHostMenu] = useState(false);
+
+  useEffect(() => {
+    if (!showLocalHostMenu) return;
+    const handleClickOutside = () => setShowLocalHostMenu(false);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [showLocalHostMenu]);
+
+  const handleOpenScannerFor = (role = 'pusat') => {
+    setScannerTargetRole(role);
+    setIsScannerOpen(true);
+  };
+
+  const handleSelectHostFromScanner = (chosenAddress, role) => {
+    if (role === 'pusat') {
+      setFormData(prev => ({ ...prev, ServerPusat: chosenAddress }));
+    } else {
+      setFormData(prev => ({ ...prev, ServerLokal: chosenAddress }));
+    }
+  };
 
   const togglePasswordVisibility = (nodeId, field) => {
     const key = `${nodeId}-${field}`;
@@ -462,68 +486,30 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label className="form-label" style={{ margin: 0 }}>Host & Port Server Pusat</label>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => setIsScannerOpen(true)}
-                      style={{
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#0284c7',
-                        fontSize: '0.68rem',
-                        padding: '2px 8px',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                      title="Pindai port 1433 di subnet WiFi untuk menemukan IP & Hostname Server Pusat"
-                    >
-                      <Radar size={11} />
-                      <span>Pindai Subnet</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const port = formData.ServerPusat && formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat && formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
-                        setFormData({ ...formData, ServerPusat: `192.168.2.126,${port}` });
-                      }}
-                      style={{
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#10b981',
-                        fontSize: '0.68rem',
-                        padding: '2px 8px',
-                        cursor: 'pointer'
-                      }}
-                      title="Gunakan IP Server Pusat: 192.168.2.126"
-                    >
-                      IP: 192.168.2.126
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const port = formData.ServerPusat && formData.ServerPusat.includes(',') ? formData.ServerPusat.split(',')[1] : (formData.ServerPusat && formData.ServerPusat.includes(':') ? formData.ServerPusat.split(':')[1] : '1433');
-                        setFormData({ ...formData, ServerPusat: `LAPTOP-IVSFKQ1T.local,${port}` });
-                      }}
-                      style={{
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#0284c7',
-                        fontSize: '0.68rem',
-                        padding: '2px 8px',
-                        cursor: 'pointer'
-                      }}
-                      title="Gunakan Hostname Server Pusat: LAPTOP-IVSFKQ1T.local"
-                    >
-                      Hostname: LAPTOP-IVSFKQ1T
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenScannerFor('pusat')}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#0284c7',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Pindai instance SQL Server di subnet WiFi untuk mengisi Host Server Pusat secara otomatis"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai Subnet</span>
+                  </button>
                 </div>
                 <input
                   type="text"
@@ -532,7 +518,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   autoComplete="on"
                   value={formData.ServerPusat}
                   onChange={(e) => setFormData({ ...formData, ServerPusat: e.target.value })}
-                  placeholder="Contoh: 192.168.2.126,1433 atau localhost,1433"
+                  placeholder="Contoh: 192.168.1.100,1433 atau WIN-SERVER-01.local,1433"
                 />
               </div>
 
@@ -674,50 +660,155 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
 
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label className="form-label" style={{ margin: 0 }}>Host & Port Server Lokal</label>
                   {networkInfo && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative' }}>
                       <button
                         type="button"
-                        onClick={() => {
-                          const current = formData.ServerLokal || '';
-                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
-                          setFormData({ ...formData, ServerLokal: `${networkInfo.local_ip},${port}` });
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowLocalHostMenu(prev => !prev);
                         }}
                         style={{
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
                           borderRadius: 'var(--radius-sm)',
                           color: '#10b981',
-                          fontSize: '0.68rem',
-                          padding: '2px 8px',
-                          cursor: 'pointer'
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          padding: '3px 10px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          transition: 'all 0.15s ease'
                         }}
-                        title={`Gunakan IP Laptop ini: ${networkInfo.local_ip}`}
+                        title="Pilihan cepat host lokal (IP, Hostname, atau Localhost)"
                       >
-                        IP: {networkInfo.local_ip}
+                        <Laptop size={12} />
+                        <span>Host Lokal</span>
+                        <ChevronDown size={11} style={{ transform: showLocalHostMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = formData.ServerLokal || '';
-                          const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
-                          setFormData({ ...formData, ServerLokal: `${networkInfo.local_hostname},${port}` });
-                        }}
-                        style={{
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          border: '1px solid rgba(56, 189, 248, 0.3)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#0284c7',
-                          fontSize: '0.68rem',
-                          padding: '2px 8px',
-                          cursor: 'pointer'
-                        }}
-                        title={`Gunakan Hostname Laptop: ${networkInfo.local_hostname}`}
-                      >
-                        Hostname: {networkInfo.local_hostname?.split('.')[0] || 'Lokal'}
-                      </button>
+
+                      {showLocalHostMenu && (
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 'calc(100% + 4px)',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+                            padding: '6px',
+                            zIndex: 100,
+                            width: 'max-content',
+                            minWidth: '260px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', padding: '4px 10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                            Pilih Host Laptop Ini:
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = formData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setFormData({ ...formData, ServerLokal: `${networkInfo.local_ip},${port}` });
+                              setShowLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `IP: ${networkInfo.local_ip},${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>IP WiFi / LAN:</span>
+                            <span style={{ color: '#10b981', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>{networkInfo.local_ip}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = formData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setFormData({ ...formData, ServerLokal: `${networkInfo.local_hostname},${port}` });
+                              setShowLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `Hostname: ${networkInfo.local_hostname},${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>Hostname mDNS:</span>
+                            <span style={{ color: '#0284c7', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>{networkInfo.local_hostname?.split('.')[0] || 'Lokal'}.local</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = formData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setFormData({ ...formData, ServerLokal: `localhost,${port}` });
+                              setShowLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `localhost,${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>Localhost:</span>
+                            <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>localhost</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -819,6 +910,8 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         networkInfo={networkInfo}
         configs={configs}
         onNodeUpdated={onRefreshConfigs}
+        onSelectHost={isModalOpen ? handleSelectHostFromScanner : null}
+        targetRole={scannerTargetRole}
       />
     </div>
   );

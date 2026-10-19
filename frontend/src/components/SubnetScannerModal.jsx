@@ -11,13 +11,22 @@ import {
   Check, 
   X,
   Laptop,
-  Copy
+  Copy,
+  Zap
 } from 'lucide-react';
 import Modal from './Modal';
 import { api } from '../api';
 import { useToast } from './Toast';
 
-export default function SubnetScannerModal({ isOpen, onClose, networkInfo, configs, onNodeUpdated }) {
+export default function SubnetScannerModal({ 
+  isOpen, 
+  onClose, 
+  networkInfo, 
+  configs, 
+  onNodeUpdated, 
+  onSelectHost = null, 
+  targetRole = 'pusat' 
+}) {
   const toast = useToast();
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -77,6 +86,17 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
       toast.error('Gagal Memperbarui Alamat', err.message);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleSelectAndClose = (chosenAddress) => {
+    if (onSelectHost) {
+      onSelectHost(chosenAddress, targetRole);
+      toast.success(
+        'Alamat Diterapkan', 
+        `Host Server ${targetRole === 'pusat' ? 'Pusat' : 'Lokal'} diisi: ${chosenAddress}`
+      );
+      onClose();
     }
   };
 
@@ -259,12 +279,12 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                             </div>
                             <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                               <span>Latency TCP: <strong style={{ color: '#10b981' }}>{dev.latency_ms} ms</strong></span>
-                              {(dev.hostname || (dev.ip === '192.168.2.126')) && (
+                              {(dev.hostname || dev.mdns_hostname) && (
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <span>• Hostname: <strong style={{ color: '#0284c7' }}>{dev.hostname || 'LAPTOP-IVSFKQ1T'}</strong> ({dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local'})</span>
+                                  <span>• Hostname: <strong style={{ color: '#0284c7' }}>{dev.hostname || dev.mdns_hostname}</strong> ({dev.mdns_hostname || `${dev.hostname}.local`})</span>
                                   <button
                                     type="button"
-                                    onClick={() => handleCopy(dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local', `host-${idx}`, 'Hostname mDNS')}
+                                    onClick={() => handleCopy(dev.mdns_hostname || `${dev.hostname}.local`, `host-${idx}`, 'Hostname mDNS')}
                                     style={{
                                       background: 'none',
                                       border: 'none',
@@ -289,8 +309,51 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                         </span>
                       </div>
 
-                      {/* Matched Node Options & Quick Update Buttons */}
-                      {configs && configs.length > 0 && !isMyLaptop && (
+                      {/* MODE 1: Pilihan Cepat untuk Form Modal Node (Auto-fill & Auto-close) */}
+                      {onSelectHost && (
+                        <div style={{
+                          background: 'var(--bg-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 14px',
+                          border: '1px solid var(--border-subtle)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          flexWrap: 'wrap'
+                        }}>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Pilih untuk Server {targetRole === 'pusat' ? 'Pusat' : 'Lokal'}:
+                          </span>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleSelectAndClose(`${dev.ip},1433`)}
+                              style={{ fontSize: '0.74rem', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                              title={`Gunakan IP ${dev.ip},1433 dan langsung terapkan ke form`}
+                            >
+                              <Zap size={13} />
+                              <span>Gunakan IP ({dev.ip},1433)</span>
+                            </button>
+                            {(dev.mdns_hostname || dev.hostname) && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleSelectAndClose(`${dev.mdns_hostname || `${dev.hostname}.local`},1433`)}
+                                style={{ fontSize: '0.74rem', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0284c7', borderColor: 'rgba(56, 189, 248, 0.35)' }}
+                                title={`Gunakan Hostname ${dev.mdns_hostname || `${dev.hostname}.local`},1433 dan langsung terapkan ke form`}
+                              >
+                                <Wifi size={13} />
+                                <span>Gunakan Hostname ({dev.mdns_hostname || `${dev.hostname}.local`},1433)</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MODE 2: Terapkan ke Konfigurasi Database Node yang Ada */}
+                      {!onSelectHost && configs && configs.length > 0 && !isMyLaptop && (
                         <div style={{
                           background: 'var(--bg-card)',
                           borderRadius: 'var(--radius-sm)',
@@ -316,13 +379,13 @@ export default function SubnetScannerModal({ isOpen, onClose, networkInfo, confi
                             lineHeight: 1.4
                           }}>
                             <div>📌 <strong>Set IP:</strong> Menerapkan nomor IP langsung (<code>{dev.ip},1433</code>) ke server pusat node database terpilih.</div>
-                            <div>🌐 <strong>Set Hostname:</strong> Menerapkan nama hostname mDNS (<code>{(dev.mdns_hostname || 'LAPTOP-IVSFKQ1T.local')},1433</code>) agar koneksi tetap terhubung otomatis meskipun IP server pusat berganti di WiFi.</div>
+                            <div>🌐 <strong>Set Hostname:</strong> Menerapkan nama hostname mDNS (<code>{(dev.mdns_hostname || (dev.hostname ? `${dev.hostname}.local` : 'WIN-SERVER-01.local'))},1433</code>) agar koneksi tetap terhubung otomatis meskipun IP server pusat berganti di WiFi.</div>
                           </div>
 
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {configs.map((cfg) => {
-                              const devHost = dev.hostname || (dev.ip === '192.168.2.126' ? 'LAPTOP-IVSFKQ1T' : '');
-                              const devMdns = dev.mdns_hostname || (dev.ip === '192.168.2.126' ? 'LAPTOP-IVSFKQ1T.local' : '');
+                              const devHost = dev.hostname || '';
+                              const devMdns = dev.mdns_hostname || (devHost ? `${devHost}.local` : '');
                               const isAlreadyPusatIp = cfg.ServerPusat && cfg.ServerPusat.includes(dev.ip);
                               const isAlreadyPusatHost = devHost && cfg.ServerPusat && cfg.ServerPusat.includes(devHost);
                               const targetAddr = `${dev.ip},1433`;

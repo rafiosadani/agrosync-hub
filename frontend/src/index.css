@@ -29,23 +29,32 @@
 /* Dark Theme (Default & [data-theme='dark']) */
 :root,
 [data-theme='dark'] {
-  --bg-primary: #09090b;       /* Zinc 950 */
-  --bg-secondary: #0f0f12;     /* Zinc 900+ */
-  --bg-card: #141418;          /* Surface */
+  --bg-primary: #09090b;
+  /* Zinc 950 */
+  --bg-secondary: #0f0f12;
+  /* Zinc 900+ */
+  --bg-card: #141418;
+  /* Surface */
   --bg-card-hover: #18181d;
-  --bg-card-inner: #191920;    /* Dedicated inner sub-card background */
+  --bg-card-inner: #191920;
+  /* Dedicated inner sub-card background */
   --bg-input: #121215;
   --bg-glass: #0c0c0e;
   --bg-subtle: rgba(255, 255, 255, 0.03);
   --bg-pill: rgba(255, 255, 255, 0.06);
 
-  --border-subtle: #27272a;    /* Zinc 800 */
-  --border-hover: #3f3f46;     /* Zinc 700 */
+  --border-subtle: #27272a;
+  /* Zinc 800 */
+  --border-hover: #3f3f46;
+  /* Zinc 700 */
   --border-focus: #10b981;
 
-  --text-primary: #f4f4f5;     /* Zinc 100 */
-  --text-secondary: #a1a1aa;   /* Zinc 400 */
-  --text-muted: #71717a;       /* Zinc 500 */
+  --text-primary: #f4f4f5;
+  /* Zinc 100 */
+  --text-secondary: #a1a1aa;
+  /* Zinc 400 */
+  --text-muted: #71717a;
+  /* Zinc 500 */
 
   --shadow-card: none;
   --table-header-bg: #121215;
@@ -60,30 +69,41 @@
 
 /* Light Theme ([data-theme='light']) */
 [data-theme='light'] {
-  --bg-primary: #f8fafc;       /* Slate 50 */
-  --bg-secondary: #ffffff;     /* Crisp White */
-  --bg-card: #ffffff;          /* Pure White Surface */
-  --bg-card-hover: #f1f5f9;    /* Slate 100 */
-  --bg-card-inner: #f8fafc;    /* Soft Slate 50 Inner Box */
+  --bg-primary: #f8fafc;
+  /* Slate 50 */
+  --bg-secondary: #ffffff;
+  /* Crisp White */
+  --bg-card: #ffffff;
+  /* Pure White Surface */
+  --bg-card-hover: #f1f5f9;
+  /* Slate 100 */
+  --bg-card-inner: #f8fafc;
+  /* Soft Slate 50 Inner Box */
   --bg-input: #ffffff;
   --bg-glass: #ffffff;
   --bg-subtle: #f1f5f9;
   --bg-pill: #e2e8f0;
 
-  --border-subtle: #e2e8f0;    /* Slate 200 */
-  --border-hover: #cbd5e1;     /* Slate 300 */
+  --border-subtle: #e2e8f0;
+  /* Slate 200 */
+  --border-hover: #cbd5e1;
+  /* Slate 300 */
   --border-focus: #10b981;
 
-  --text-primary: #0f172a;     /* Slate 900 High Contrast */
-  --text-secondary: #475569;   /* Slate 600 */
-  --text-muted: #64748b;       /* Slate 500 readable */
+  --text-primary: #0f172a;
+  /* Slate 900 High Contrast */
+  --text-secondary: #475569;
+  /* Slate 600 */
+  --text-muted: #64748b;
+  /* Slate 500 readable */
 
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --table-header-bg: #f8fafc;
   --badge-neutral-bg: #f1f5f9;
   --badge-neutral-text: #475569;
   --badge-neutral-border: #e2e8f0;
-  --terminal-bg: #0f172a;      /* Monospace terminal retains high contrast dark background */
+  --terminal-bg: #0f172a;
+  /* Monospace terminal retains high contrast dark background */
   --terminal-header-bg: #1e293b;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
@@ -142,13 +162,16 @@ body {
   width: 7px;
   height: 7px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-primary);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
@@ -453,8 +476,15 @@ body {
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.9; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 /* Buttons */
@@ -739,8 +769,8 @@ select.form-input {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 315px);
-  max-height: calc(100vh - 315px);
+  height: calc(100vh - 280px);
+  max-height: calc(100vh - 280px);
   box-shadow: var(--shadow-md);
 }
 
@@ -765,9 +795,17 @@ select.form-input {
   border-radius: 50%;
 }
 
-.terminal-dot-red { background: #ef4444; }
-.terminal-dot-yellow { background: #f59e0b; }
-.terminal-dot-green { background: #10b981; }
+.terminal-dot-red {
+  background: #ef4444;
+}
+
+.terminal-dot-yellow {
+  background: #f59e0b;
+}
+
+.terminal-dot-green {
+  background: #10b981;
+}
 
 .terminal-body {
   padding: 12px 18px;
@@ -789,6 +827,7 @@ select.form-input {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -800,6 +839,7 @@ select.form-input {
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -810,14 +850,20 @@ select.form-input {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin {
@@ -913,6 +959,7 @@ select.form-input {
   color: #0284c7;
   border: 1px solid rgba(56, 189, 248, 0.28);
 }
+
 [data-theme='dark'] .node-route-tag.pusat,
 :root:not([data-theme='light']) .node-route-tag.pusat {
   color: #38bdf8;
@@ -923,6 +970,7 @@ select.form-input {
   color: #15803d;
   border: 1px solid rgba(16, 185, 129, 0.28);
 }
+
 [data-theme='dark'] .node-route-tag.lokal,
 :root:not([data-theme='light']) .node-route-tag.lokal {
   color: #34d399;
@@ -985,6 +1033,7 @@ select.form-input {
   background: rgba(56, 189, 248, 0.12);
   color: #0284c7;
 }
+
 [data-theme='dark'] .health-server-label.pusat {
   color: #38bdf8;
 }
@@ -993,6 +1042,7 @@ select.form-input {
   background: rgba(16, 185, 129, 0.12);
   color: #15803d;
 }
+
 [data-theme='dark'] .health-server-label.lokal {
   color: #34d399;
 }
@@ -1017,6 +1067,7 @@ select.form-input {
   align-items: center;
   gap: 4px;
 }
+
 [data-theme='dark'] .status-ping-online {
   color: #34d399;
 }
@@ -1027,6 +1078,7 @@ select.form-input {
   align-items: center;
   gap: 4px;
 }
+
 [data-theme='dark'] .status-ping-offline {
   color: #fb7185;
 }
@@ -1103,7 +1155,7 @@ select.form-input {
   color: #dc2626;
   line-height: 1.4;
 }
+
 [data-theme='dark'] .health-error-box {
   color: #fb7185;
 }
-
