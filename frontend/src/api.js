@@ -59,6 +59,19 @@ export const api = {
     return res.json();
   },
 
+  async batchUpdateCredentials(payload) {
+    const res = await fetch(`${API_BASE}/api/configs/batch-credentials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Gagal memperbarui kredensial batch');
+    }
+    return res.json();
+  },
+
   async testConnection(server, database, user, password, nodeId = null, role = 'pusat') {
     const res = await fetch(`${API_BASE}/api/configs/test-connection`, {
       method: 'POST',

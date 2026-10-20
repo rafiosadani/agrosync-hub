@@ -11,7 +11,9 @@ from ...models.config_models import (
     FetchDatabasesRequest,
     FetchDatabasesResponse,
     BatchCreateConfigRequest,
-    BatchCreateConfigResponse
+    BatchCreateConfigResponse,
+    BatchUpdateCredentialsRequest,
+    BatchUpdateCredentialsResponse
 )
 from ...core.config_manager import ConfigManager
 from ...core.connection_tester import test_sql_connection, create_sql_database, fetch_sql_databases
@@ -64,6 +66,30 @@ def create_configs_batch(payload: BatchCreateConfigRequest):
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/batch-credentials", response_model=BatchUpdateCredentialsResponse)
+def batch_update_credentials(payload: BatchUpdateCredentialsRequest):
+    """Memperbarui kredensial dan/atau server bersamaan untuk beberapa database node tanpa mengubah nama database."""
+    try:
+        update_fields = {
+            "ServerPusat": payload.ServerPusat,
+            "UserPusat": payload.UserPusat,
+            "PasswordPusat": payload.PasswordPusat,
+            "ServerLokal": payload.ServerLokal,
+            "UserLokal": payload.UserLokal,
+            "PasswordLokal": payload.PasswordLokal,
+        }
+        all_masked = ConfigManager.update_credentials_batch(payload.node_ids, update_fields)
+        return BatchUpdateCredentialsResponse(
+            success=True,
+            message=f"Berhasil memperbarui kredensial untuk {len(payload.node_ids)} database node.",
+            updated_count=len(payload.node_ids),
+            nodes=all_masked
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

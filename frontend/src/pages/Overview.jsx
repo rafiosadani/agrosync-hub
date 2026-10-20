@@ -409,27 +409,43 @@ export default function Overview({
                 }}
               >
                 <div>
-                  {/* Header Row 1: Company Badge & Status/Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  {/* Header Row 1: Full Company Name on Dedicated Single Line */}
+                  <div style={{ marginBottom: '10px' }}>
                     <span 
                       title={cmp.company_name}
                       style={{
                         background: 'rgba(16, 185, 129, 0.12)',
                         color: '#10b981',
-                        padding: '3px 10px',
+                        padding: '4px 10px',
                         borderRadius: 'var(--radius-sm)',
                         fontWeight: 700,
-                        fontSize: '0.78rem',
+                        fontSize: '0.8rem',
+                        letterSpacing: '0.02em',
                         border: '1px solid rgba(16, 185, 129, 0.28)',
-                        maxWidth: '220px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        wordBreak: 'break-word',
+                        lineHeight: 1.35
                       }}
                     >
                       {cmp.company_name}
                     </span>
+                  </div>
+
+                  {/* Header Row 2: Database Name with Icon (Left) & Status Badges + Reload Actions (Right) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                      <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {cmp.database_pusat || cmp.company_name}
+                      </span>
+                      {cmp.database_lokal && cmp.database_lokal !== cmp.database_pusat && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                          <span>➔</span>
+                          <span>{cmp.database_lokal}</span>
+                        </span>
+                      )}
+                    </strong>
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       {cmp.is_active === false && (
                         <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
@@ -476,20 +492,6 @@ export default function Overview({
                         </button>
                       )}
                     </div>
-                  </div>
-
-                  {/* Header Row 2: Database Name with Icon & Target */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                      <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
-                      <span>{cmp.database_pusat || cmp.company_name}</span>
-                      {cmp.database_lokal && cmp.database_lokal !== cmp.database_pusat && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span>➔</span>
-                          <span>{cmp.database_lokal}</span>
-                        </span>
-                      )}
-                    </strong>
                   </div>
 
                   {/* Route Info: Server Pusat -> Server Lokal (Responsive Pill) */}

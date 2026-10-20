@@ -271,3 +271,37 @@ class ConfigManager:
         raw.pop(node_id)
         cls._write_raw(raw)
         return True
+
+    @classmethod
+    def update_credentials_batch(cls, node_ids: List[int], updates: Dict[str, Any]) -> List[DatabaseNodeMasked]:
+        """
+        Memperbarui kredensial server pusat/lokal bersamaan untuk kumpulan node yang dipilih,
+        tanpa mengubah CompanyName, DatabasePusat, maupun DatabaseLokal masing-masing.
+        """
+        raw = cls._read_raw()
+        valid_ids = [nid for nid in set(node_ids) if 0 <= nid < len(raw)]
+        if not valid_ids:
+            raise ValueError("Tidak ada ID node valid yang dipilih untuk diperbarui.")
+
+        clean_updates = {}
+        for k, v in updates.items():
+            if v is not None and str(v).strip() != "":
+                if k in ("PasswordPusat", "PasswordLokal") and v in ("••••••••", "********"):
+                    continue
+                clean_updates[k] = v
+
+        if not clean_updates:
+            raise ValueError("Tidak ada parameter kredensial atau server baru yang diisi untuk diperbarui.")
+
+        for nid in valid_ids:
+            current = raw[nid].copy()
+            for k, v in clean_updates.items():
+                current[k] = v
+            dup_err = cls.check_duplicate(current, raw, exclude_id=nid)
+            if dup_err:
+                raise ValueError(f"Konflik pada Node #{nid + 1} ({raw[nid].get('CompanyName')} - {raw[nid].get('DatabasePusat')}): {dup_err}")
+            raw[nid] = current
+
+        cls._write_raw(raw)
+        return cls.get_all_masked()
+

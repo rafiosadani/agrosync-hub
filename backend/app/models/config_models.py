@@ -85,3 +85,21 @@ class BatchCreateConfigResponse(BaseModel):
     message: str
     nodes: List[DatabaseNodeMasked] = []
 
+
+class BatchUpdateCredentialsRequest(BaseModel):
+    node_ids: List[int] = Field(..., description="Daftar ID node yang akan diperbarui kredensialnya")
+    ServerPusat: Optional[str] = None
+    UserPusat: Optional[str] = None
+    PasswordPusat: Optional[str] = None
+    ServerLokal: Optional[str] = None
+    UserLokal: Optional[str] = None
+    PasswordLokal: Optional[str] = None
+
+
+class BatchUpdateCredentialsResponse(BaseModel):
+    success: bool
+    message: str
+    updated_count: int = 0
+    nodes: List[DatabaseNodeMasked] = []
+
+

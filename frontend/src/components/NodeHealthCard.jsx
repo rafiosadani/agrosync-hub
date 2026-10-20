@@ -43,45 +43,45 @@ export default function NodeHealthCard({ node, onEdit }) {
     <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
       <div>
         {/* Card Header: 2-Row Responsive Layout */}
+        {/* Header Row 1: Full Company Name on Dedicated Single Line */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-            <span 
-              title={node.company_name}
-              style={{
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10b981',
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-sm)',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                border: '1px solid rgba(16, 185, 129, 0.28)',
-                maxWidth: '200px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: 'inline-block'
-              }}
-            >
-              {node.company_name}
-            </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Node #{node.id + 1}
-            </span>
+          <span 
+            title={node.company_name}
+            style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#10b981',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              letterSpacing: '0.02em',
+              border: '1px solid rgba(16, 185, 129, 0.28)',
+              display: 'inline-block',
+              wordBreak: 'break-word',
+              lineHeight: 1.35
+            }}
+          >
+            {node.company_name}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>
+            Node #{node.id + 1}
+          </span>
+        </div>
+
+        {/* Header Row 2: Database Name Route (Left) & Overall Status Badge (Right) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+            <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>{node.database_pusat}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>➔</span>
+              <span>{node.database_lokal}</span>
+            </div>
           </div>
 
           <span className={`badge ${isHealthy ? 'badge-success' : isDegraded ? 'badge-warning' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
             {node.overall_status}
           </span>
-        </div>
-
-        {/* Header Row 2: Database Name Route */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-          <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
-          <div style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>{node.database_pusat}</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>➔</span>
-            <span>{node.database_lokal}</span>
-          </div>
         </div>
 
         {/* Dedicated Responsive Server Panels */}

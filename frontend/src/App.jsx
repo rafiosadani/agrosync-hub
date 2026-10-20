@@ -37,21 +37,21 @@ export default function App() {
   const fetchDashboardData = async (forceHealth = false) => {
     setIsRefreshing(true);
     try {
-      const [health, metrics, companies, cfgs, logs, status] = await Promise.all([
-        api.getHealth(forceHealth).catch(() => null),
-        api.getMetricsSummary().catch(() => null),
-        api.getMetricsByCompany().catch(() => []),
-        api.getConfigs().catch(() => []),
-        api.getLogs({ limit: 10 }).catch(() => []),
-        api.getSyncStatus().catch(() => null)
+      // 1. Eksekusi data konfigurasi & metrik secara instan (sub-10ms) agar UI langsung reaktif
+      const fastFetch = Promise.all([
+        api.getConfigs().then(cfgs => { if (cfgs) setConfigs(cfgs); return cfgs; }).catch(() => []),
+        api.getMetricsByCompany().then(companies => { if (companies) setCompanyMetrics(companies); return companies; }).catch(() => []),
+        api.getMetricsSummary().then(metrics => { if (metrics) setMetricsSummary(metrics); return metrics; }).catch(() => null),
+        api.getSyncStatus().then(status => { if (status) setSyncStatus(status); return status; }).catch(() => null),
+        api.getLogs({ limit: 10 }).then(logs => { if (logs) setRecentLogs(logs); return logs; }).catch(() => [])
       ]);
 
-      if (health) setSystemHealth(health);
-      if (metrics) setMetricsSummary(metrics);
-      if (companies) setCompanyMetrics(companies);
-      if (cfgs) setConfigs(cfgs);
-      if (logs) setRecentLogs(logs);
-      if (status) setSyncStatus(status);
+      // 2. Health check (ODBC network ping ke SQL Server) berjalan independen tanpa memblokir tampilan konfigurasi
+      const healthFetch = api.getHealth(forceHealth)
+        .then(health => { if (health) setSystemHealth(health); return health; })
+        .catch(() => null);
+
+      await Promise.all([fastFetch, healthFetch]);
     } catch (err) {
       console.error("Gagal memuat data dashboard:", err);
     } finally {

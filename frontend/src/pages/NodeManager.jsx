@@ -25,7 +25,11 @@ import {
   ArrowRight,
   ArrowLeft,
   Lock,
-  Layers
+  Layers,
+  Building2,
+  KeyRound,
+  Filter,
+  X
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import SubnetScannerModal from '../components/SubnetScannerModal';
@@ -81,6 +85,120 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   const [showModalPassLokal, setShowModalPassLokal] = useState(false);
   const [scannerTargetRole, setScannerTargetRole] = useState('pusat');
   const [showLocalHostMenu, setShowLocalHostMenu] = useState(false);
+
+  // Live Search, Filter Perusahaan, & Batch Credentials States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState('ALL');
+  const [selectedNodeIds, setSelectedNodeIds] = useState([]);
+  const [isBatchCredModalOpen, setIsBatchCredModalOpen] = useState(false);
+  const [batchCredData, setBatchCredData] = useState({
+    ServerPusat: '',
+    UserPusat: '',
+    PasswordPusat: '',
+    ServerLokal: '',
+    UserLokal: '',
+    PasswordLokal: ''
+  });
+  const [batchCredTargetIds, setBatchCredTargetIds] = useState([]);
+  const [isSavingBatchCred, setIsSavingBatchCred] = useState(false);
+  const [revealedBatchPasswords, setRevealedBatchPasswords] = useState({});
+
+  // Dynamic unique company names from data list
+  const uniqueCompanies = Array.from(new Set((configs || []).map(c => c.CompanyName).filter(Boolean))).sort();
+
+  // Filtered configs by company and live search query
+  const filteredConfigs = (configs || []).filter(node => {
+    if (selectedCompanyFilter !== 'ALL' && node.CompanyName !== selectedCompanyFilter) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchComp = (node.CompanyName || '').toLowerCase().includes(q);
+      const matchDbP = (node.DatabasePusat || '').toLowerCase().includes(q);
+      const matchDbL = (node.DatabaseLokal || '').toLowerCase().includes(q);
+      const matchSrvP = (node.ServerPusat || '').toLowerCase().includes(q);
+      const matchSrvL = (node.ServerLokal || '').toLowerCase().includes(q);
+      const matchUserP = (node.UserPusat || '').toLowerCase().includes(q);
+      const matchUserL = (node.UserLokal || '').toLowerCase().includes(q);
+      return matchComp || matchDbP || matchDbL || matchSrvP || matchSrvL || matchUserP || matchUserL;
+    }
+    return true;
+  });
+
+  const handleToggleSelectAll = () => {
+    if (selectedNodeIds.length === filteredConfigs.length && filteredConfigs.length > 0) {
+      setSelectedNodeIds([]);
+    } else {
+      setSelectedNodeIds(filteredConfigs.map(n => n.id));
+    }
+  };
+
+  const handleToggleSelectNode = (id) => {
+    setSelectedNodeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenBatchCredModal = (preselectedIds = null) => {
+    const targets = preselectedIds || (selectedNodeIds.length > 0 ? selectedNodeIds : (configs || []).map(n => n.id));
+    if (targets.length === 0) {
+      toast.warning('Pilih Node Terlebih Dahulu', 'Silakan pilih setidaknya 1 database node untuk diperbarui kredensialnya.');
+      return;
+    }
+    setBatchCredTargetIds(targets);
+    setBatchCredData({
+      ServerPusat: '',
+      UserPusat: '',
+      PasswordPusat: '',
+      ServerLokal: '',
+      UserLokal: '',
+      PasswordLokal: ''
+    });
+    setRevealedBatchPasswords({});
+    setIsBatchCredModalOpen(true);
+  };
+
+  const handleSaveBatchCredentials = async (e) => {
+    e.preventDefault();
+    if (batchCredTargetIds.length === 0) {
+      toast.warning('Pilih Node Target', 'Harap pilih minimal 1 database node target untuk diperbarui.');
+      return;
+    }
+
+    const hasAnyField = Object.values(batchCredData).some(v => v && v.trim() !== '');
+    if (!hasAnyField) {
+      toast.warning('Form Masih Kosong', 'Harap isi minimal salah satu parameter kredensial atau server yang ingin diperbarui.');
+      return;
+    }
+
+    const isConfirmed = await confirm({
+      title: `Batch Update Kredensial (${batchCredTargetIds.length} Node)`,
+      description: `Apakah Anda yakin ingin memperbarui kredensial/server untuk ${batchCredTargetIds.length} database node yang dipilih? Nama database pusat dan lokal tidak akan diubah.`,
+      confirmText: 'Terapkan Pembaruan Kredensial',
+      variant: 'primary'
+    });
+    if (!isConfirmed) return;
+
+    setIsSavingBatchCred(true);
+    try {
+      const payload = {
+        node_ids: batchCredTargetIds,
+        ...batchCredData
+      };
+      if (!payload.PasswordPusat) delete payload.PasswordPusat;
+      if (!payload.PasswordLokal) delete payload.PasswordLokal;
+
+      const res = await api.batchUpdateCredentials(payload);
+      toast.success('Kredensial Berhasil Diperbarui', res.message || `${batchCredTargetIds.length} node telah diperbarui.`);
+      setIsBatchCredModalOpen(false);
+      setSelectedNodeIds([]);
+      await onRefreshConfigs?.();
+    } catch (err) {
+      toast.error('Gagal Memperbarui Kredensial', err.message);
+    } finally {
+      setIsSavingBatchCred(false);
+    }
+  };
 
   useEffect(() => {
     api.getNetworkInfo().then(info => {
@@ -610,7 +728,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         toast.success('Node Baru Ditambahkan', `Node ${formData.CompanyName} (${formData.DatabasePusat}) berhasil disimpan.`);
       }
       setIsModalOpen(false);
-      onRefreshConfigs();
+      await onRefreshConfigs?.();
     } catch (err) {
       if (err.message && (err.message.includes('Duplikasi') || err.message.includes('Konflik'))) {
         setFormErrors(prev => ({
@@ -669,12 +787,137 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         </div>
       </div>
 
+      {/* Filter & Live Search Toolbar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        background: 'var(--bg-card)',
+        padding: '12px 16px',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        {/* Left: Search & Dropdown Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
+          {/* Live Search Input */}
+          <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
+            <Search size={15} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              className="form-input"
+              style={{ paddingLeft: '34px', paddingRight: searchQuery ? '30px' : '12px', height: '36px', fontSize: '0.84rem' }}
+              placeholder="Cari database, host, port, atau perusahaan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title="Hapus pencarian"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Dropdown Filter Perusahaan */}
+          <div style={{ position: 'relative', minWidth: '190px' }}>
+            <Building2 size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <select
+              className="form-input"
+              style={{ paddingLeft: '32px', height: '36px', fontSize: '0.84rem', cursor: 'pointer' }}
+              value={selectedCompanyFilter}
+              onChange={(e) => setSelectedCompanyFilter(e.target.value)}
+            >
+              <option value="ALL">Semua Perusahaan ({configs ? configs.length : 0})</option>
+              {uniqueCompanies.map((comp) => {
+                const count = (configs || []).filter(c => c.CompanyName === comp).length;
+                return (
+                  <option key={comp} value={comp}>
+                    {comp} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+
+        {/* Right: Selection Actions & Batch Credential Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {selectedNodeIds.length > 0 ? (
+            <>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#10b981' }}>
+                {selectedNodeIds.length} node dipilih
+              </span>
+              <button
+                className="btn btn-warning"
+                style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem' }}
+                onClick={() => handleOpenBatchCredModal(selectedNodeIds)}
+                title="Ubah host/port/kredensial untuk node yang dipilih"
+              >
+                <KeyRound size={14} />
+                <span>Batch Update Kredensial ({selectedNodeIds.length})</span>
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ height: '36px', padding: '0 10px', fontSize: '0.82rem' }}
+                onClick={() => setSelectedNodeIds([])}
+                title="Batal pilih semua"
+              >
+                <span>Batal</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Menampilkan <strong>{filteredConfigs.length}</strong> dari {configs?.length || 0} node
+              </span>
+              <button
+                className="btn btn-secondary"
+                style={{ height: '36px', padding: '0 12px', fontSize: '0.82rem' }}
+                onClick={() => handleOpenBatchCredModal()}
+                title="Perbarui server dan kredensial secara massal tanpa mengubah database"
+              >
+                <KeyRound size={14} />
+                <span>Batch Kredensial</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Nodes Table */}
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         <div className="data-table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    style={{ cursor: 'pointer', accentColor: '#10b981' }}
+                    checked={filteredConfigs.length > 0 && selectedNodeIds.length === filteredConfigs.length}
+                    onChange={handleToggleSelectAll}
+                    title="Pilih semua node yang tampil"
+                  />
+                </th>
                 <th>Perusahaan</th>
                 <th>Server Pusat (Host, Port, DB)</th>
                 <th>Kredensial Pusat</th>
@@ -684,78 +927,101 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               </tr>
             </thead>
             <tbody>
-              {configs && configs.length > 0 ? (
-                configs.map((node) => (
-                  <tr key={node.id}>
-                    <td>
-                      <span 
-                        title={node.CompanyName}
-                        style={{
-                          background: 'rgba(16, 185, 129, 0.12)',
-                          color: '#10b981',
-                          padding: '4px 10px',
-                          borderRadius: 'var(--radius-sm)',
-                          fontWeight: 700,
-                          fontSize: '0.82rem',
-                          border: '1px solid rgba(16, 185, 129, 0.28)',
-                          maxWidth: '220px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: 'inline-block',
-                          verticalAlign: 'middle'
-                        }}
-                      >
-                        {node.CompanyName}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{node.DatabasePusat}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{node.ServerPusat}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User: <strong>{node.UserPusat}</strong></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        <span>Pass: ••••••••</span>
-                        <ShieldCheck size={14} color="#10b981" title="Terenkripsi / Ter-masking" />
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{node.DatabaseLokal}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{node.ServerLokal}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User: <strong>{node.UserLokal}</strong></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        <span>Pass: ••••••••</span>
-                        <ShieldCheck size={14} color="#10b981" title="Terenkripsi / Ter-masking" />
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleOpenEditModal(node)}
-                          title="Edit Konfigurasi Node"
+              {filteredConfigs && filteredConfigs.length > 0 ? (
+                filteredConfigs.map((node) => {
+                  const isSelected = selectedNodeIds.includes(node.id);
+                  return (
+                    <tr key={node.id} style={{ background: isSelected ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          style={{ cursor: 'pointer', accentColor: '#10b981' }}
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectNode(node.id)}
+                        />
+                      </td>
+                      <td>
+                        <span 
+                          title={node.CompanyName}
+                          style={{
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            color: '#10b981',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            border: '1px solid rgba(16, 185, 129, 0.28)',
+                            display: 'inline-block',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.3
+                          }}
                         >
-                          <Edit2 size={13} />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(node.id, node.CompanyName, node.DatabasePusat)}
-                          title="Hapus Node"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {node.CompanyName}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{node.DatabasePusat}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{node.ServerPusat}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User: <strong>{node.UserPusat}</strong></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          <span>Pass: ••••••••</span>
+                          <ShieldCheck size={14} color="#10b981" title="Terenkripsi / Ter-masking" />
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{node.DatabaseLokal}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{node.ServerLokal}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User: <strong>{node.UserLokal}</strong></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          <span>Pass: ••••••••</span>
+                          <ShieldCheck size={14} color="#10b981" title="Terenkripsi / Ter-masking" />
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleOpenEditModal(node)}
+                            title="Edit Konfigurasi Node"
+                          >
+                            <Edit2 size={13} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDelete(node.id, node.CompanyName, node.DatabasePusat)}
+                            title="Hapus Node"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    Tidak ada konfigurasi database ditemukan. Klik "Tambah Node Database" untuk memulai.
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <Search size={28} style={{ opacity: 0.4 }} />
+                      <span style={{ fontSize: '0.92rem', fontWeight: 600 }}>Tidak ada node database yang cocok</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {searchQuery ? `Tidak ditemukan hasil untuk "${searchQuery}"` : 'Tidak ada node untuk filter perusahaan yang dipilih.'}
+                      </span>
+                      {(searchQuery || selectedCompanyFilter !== 'ALL') && (
+                        <button
+                          className="btn btn-secondary"
+                          style={{ marginTop: '8px', fontSize: '0.8rem', padding: '4px 12px' }}
+                          onClick={() => { setSearchQuery(''); setSelectedCompanyFilter('ALL'); }}
+                        >
+                          Reset Filter & Pencarian
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -1777,6 +2043,278 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               ) : (
                 <span>Simpan Node Database</span>
               )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Batch Update Kredensial & Server */}
+      <Modal
+        isOpen={isBatchCredModalOpen}
+        onClose={() => setIsBatchCredModalOpen(false)}
+        title={`Batch Update Kredensial & Server (${batchCredTargetIds.length} Node)`}
+        maxWidth="750px"
+      >
+        <form onSubmit={handleSaveBatchCredentials} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* Target Nodes Selector */}
+          <div style={{
+            background: 'var(--bg-card-inner)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Target Database Node ({batchCredTargetIds.length} Terpilih):
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                  onClick={() => setBatchCredTargetIds((configs || []).map(n => n.id))}
+                >
+                  Pilih Semua
+                </button>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>|</span>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                  onClick={() => setBatchCredTargetIds([])}
+                >
+                  Kosongkan
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Filter Perusahaan Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+              {uniqueCompanies.map(comp => {
+                const compNodeIds = (configs || []).filter(c => c.CompanyName === comp).map(c => c.id);
+                const isAllSelected = compNodeIds.length > 0 && compNodeIds.every(id => batchCredTargetIds.includes(id));
+                return (
+                  <button
+                    key={comp}
+                    type="button"
+                    onClick={() => {
+                      if (isAllSelected) {
+                        setBatchCredTargetIds(prev => prev.filter(id => !compNodeIds.includes(id)));
+                      } else {
+                        setBatchCredTargetIds(prev => Array.from(new Set([...prev, ...compNodeIds])));
+                      }
+                    }}
+                    style={{
+                      background: isAllSelected ? 'rgba(16, 185, 129, 0.18)' : 'var(--bg-card)',
+                      border: isAllSelected ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+                      color: isAllSelected ? '#10b981' : 'var(--text-secondary)',
+                      padding: '3px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isAllSelected ? '✓ ' : '+ '} {comp} ({compNodeIds.length})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* List of Target Node Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '4px 0' }}>
+              {(configs || []).map(node => {
+                const isChecked = batchCredTargetIds.includes(node.id);
+                return (
+                  <span
+                    key={node.id}
+                    onClick={() => {
+                      setBatchCredTargetIds(prev => 
+                        isChecked ? prev.filter(id => id !== node.id) : [...prev, node.id]
+                      );
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      background: isChecked ? 'rgba(2, 132, 199, 0.12)' : 'var(--bg-card)',
+                      border: isChecked ? '1px solid rgba(2, 132, 199, 0.35)' : '1px solid var(--border-subtle)',
+                      color: isChecked ? '#0284c7' : 'var(--text-muted)',
+                      padding: '3px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <span>{isChecked ? '☑' : '☐'}</span>
+                    <span>{node.CompanyName} ({node.DatabasePusat})</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Info Banner */}
+          <div style={{
+            background: 'rgba(2, 132, 199, 0.08)',
+            border: '1px solid rgba(2, 132, 199, 0.25)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 14px',
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px'
+          }}>
+            <ShieldCheck size={16} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span>
+              <strong>Kerahasiaan & Preservasi Database:</strong> Kolom yang dikosongkan tidak akan diubah pada node yang dipilih. Nama database pusat dan target database lokal tetap terjaga 100% tanpa perubahan.
+            </span>
+          </div>
+
+          {/* Form Fields: Two Column Grid (Pusat & Lokal) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {/* Server Pusat Panel */}
+            <div style={{
+              background: 'var(--bg-card-inner)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px'
+            }}>
+              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#38bdf8', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Server size={14} />
+                <span>Pembaruan Server Pusat</span>
+              </h4>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Host & Port Server Pusat</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Contoh: 192.168.2.99,1433"
+                    value={batchCredData.ServerPusat}
+                    onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerPusat: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login Pusat</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Biarkan kosong jika tidak diubah"
+                    value={batchCredData.UserPusat}
+                    onChange={(e) => setBatchCredData(prev => ({ ...prev, UserPusat: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru Pusat</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={revealedBatchPasswords.Pusat ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="Biarkan kosong jika tidak diubah"
+                      value={batchCredData.PasswordPusat}
+                      onChange={(e) => setBatchCredData(prev => ({ ...prev, PasswordPusat: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                      onClick={() => setRevealedBatchPasswords(prev => ({ ...prev, Pusat: !prev.Pusat }))}
+                    >
+                      {revealedBatchPasswords.Pusat ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Server Lokal Panel */}
+            <div style={{
+              background: 'var(--bg-card-inner)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px'
+            }}>
+              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#10b981', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Server size={14} />
+                <span>Pembaruan Server Lokal</span>
+              </h4>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Host & Port Server Lokal</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Contoh: 192.168.2.99,1435"
+                    value={batchCredData.ServerLokal}
+                    onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerLokal: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login Lokal</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Biarkan kosong jika tidak diubah"
+                    value={batchCredData.UserLokal}
+                    onChange={(e) => setBatchCredData(prev => ({ ...prev, UserLokal: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru Lokal</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={revealedBatchPasswords.Lokal ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="Biarkan kosong jika tidak diubah"
+                      value={batchCredData.PasswordLokal}
+                      onChange={(e) => setBatchCredData(prev => ({ ...prev, PasswordLokal: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                      onClick={() => setRevealedBatchPasswords(prev => ({ ...prev, Lokal: !prev.Lokal }))}
+                    >
+                      {revealedBatchPasswords.Lokal ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsBatchCredModalOpen(false)}
+              disabled={isSavingBatchCred}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSavingBatchCred}
+            >
+              <KeyRound size={15} />
+              <span>{isSavingBatchCred ? 'Menerapkan Pembaruan...' : batchCredTargetIds.length > 0 ? `Terapkan Pembaruan Kredensial (${batchCredTargetIds.length} Node)` : 'Terapkan Pembaruan Kredensial'}</span>
             </button>
           </div>
         </form>
