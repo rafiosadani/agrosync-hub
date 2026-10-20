@@ -1,21 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   PlusCircle, 
   RefreshCw, 
-  Trash2, 
-  ArrowUpRight, 
   Database, 
-  Server, 
   Activity, 
-  CheckCircle2, 
-  TrendingUp,
-  Layers,
   ArrowRight,
   RotateCcw,
   Wifi,
   Radar,
-  Search,
-  Pause
+  ArrowUpDown
 } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
@@ -46,6 +39,14 @@ export default function Overview({
   const confirm = useConfirm();
   const [networkInfo, setNetworkInfo] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [nodeSortBy, setNodeSortBy] = useState(() => {
+    return localStorage.getItem('agrosync_overview_node_sort') || 'alphabetical';
+  });
+
+  const handleSortChange = (newSort) => {
+    setNodeSortBy(newSort);
+    localStorage.setItem('agrosync_overview_node_sort', newSort);
+  };
 
   const state = syncStatus?.state || 'IDLE';
   const isLoopActive = state === 'RUNNING' || (Boolean(syncStatus?.is_loop_running) && state !== 'PAUSED');
@@ -63,7 +64,7 @@ export default function Overview({
   }, []);
 
   // Daftar database node untuk metrik: prioritaskan companyMetrics, atau fallback ke systemHealth.nodes
-  const displayNodes = (companyMetrics && companyMetrics.length > 0)
+  const rawNodes = (companyMetrics && companyMetrics.length > 0)
     ? companyMetrics
     : (systemHealth?.nodes?.map(n => ({
         node_key: `${n.company_name} - ${n.database_pusat} (${n.server_lokal})`,
@@ -77,8 +78,43 @@ export default function Overview({
         total_deletes: 0,
         total_tables_synced: 0,
         last_sync_time: '-',
-        status: 'STANDBY'
+        status: 'STANDBY',
+        is_active: n.is_active !== false
       })) || []);
+
+  const displayNodes = useMemo(() => {
+    const list = [...rawNodes];
+    return list.sort((a, b) => {
+      // 1. Prioritaskan Node Aktif di atas Node Non-Aktif
+      const aActive = a.is_active !== false;
+      const bActive = b.is_active !== false;
+      if (aActive !== bActive) return aActive ? -1 : 1;
+
+      // 2. Berdasarkan pilihan sort
+      if (nodeSortBy === 'transactions') {
+        const aTotal = (a.total_inserts || 0) + (a.total_updates || 0) + (a.total_deletes || 0);
+        const bTotal = (b.total_inserts || 0) + (b.total_updates || 0) + (b.total_deletes || 0);
+        if (bTotal !== aTotal) return bTotal - aTotal; // Terbanyak di atas
+      } else if (nodeSortBy === 'config') {
+        if (configs && configs.length > 0) {
+          const getCfgIndex = (item) => configs.findIndex(c => 
+            (c.CompanyName === item.company_name) && 
+            (c.DatabasePusat === item.database_pusat || c.DatabaseLokal === item.database_lokal)
+          );
+          const aIdx = getCfgIndex(a);
+          const bIdx = getCfgIndex(b);
+          if (aIdx !== -1 && bIdx !== -1 && aIdx !== bIdx) return aIdx - bIdx;
+          if (aIdx !== -1) return -1;
+          if (bIdx !== -1) return 1;
+        }
+      }
+
+      // Default: 'alphabetical' (Nama Perusahaan lalu Nama Database secara Natural A-Z)
+      const cmp = (a.company_name || '').localeCompare(b.company_name || '');
+      if (cmp !== 0) return cmp;
+      return (a.database_pusat || '').localeCompare(b.database_pusat || '', undefined, { numeric: true });
+    });
+  }, [rawNodes, nodeSortBy, configs]);
 
   const handleResetNode = async (nodeKey) => {
     const isConfirmed = await confirm({
@@ -304,7 +340,7 @@ export default function Overview({
         </div>
       ) : displayNodes.length > 0 && (
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Aktivitas Transaksi Per Database Node
@@ -313,9 +349,46 @@ export default function Overview({
                 Pelacakan metrik DML terpisah secara presisi untuk setiap database (misal: APIdb001, APIdb002, TTMdb002).
               </p>
             </div>
-            <span className="badge badge-neutral" style={{ fontSize: '0.78rem' }}>
-              {displayNodes.length} Database Node Aktif
-            </span>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                background: 'var(--bg-card-inner)',
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <ArrowUpDown size={12} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Urutkan:
+                </span>
+                <select
+                  value={nodeSortBy}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    padding: '2px 0'
+                  }}
+                  title="Pilih standar pengurutan kartu aktivitas transaksi database"
+                >
+                  <option value="alphabetical" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Nama Database (A-Z)</option>
+                  <option value="config" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Urutan Konfigurasi</option>
+                  <option value="transactions" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>Transaksi Terbanyak</option>
+                </select>
+              </div>
+
+              <span className="badge badge-neutral" style={{ fontSize: '0.78rem' }}>
+                {displayNodes.length} Database Node
+              </span>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>

@@ -9,21 +9,30 @@ import {
   PanelLeftClose, 
   PanelLeftOpen 
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function Sidebar({ 
-  currentTab, 
-  setCurrentTab, 
   systemHealth,
   isCollapsed,
   onToggleCollapse
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const navItems = [
-    { id: 'overview', label: 'Overview Monitoring', icon: Activity, badge: null },
-    { id: 'nodes', label: 'Config & Nodes', icon: Database, badge: systemHealth?.total_nodes ? `${systemHealth.total_nodes}` : null },
-    { id: 'logs', label: 'Live Activity Logs', icon: Terminal, badge: null },
-    { id: 'migration', label: 'Smart DDL Migration', icon: Layers, badge: '330' },
-    { id: 'network', label: 'Multi-Device LAN', icon: Network, badge: null },
+    { id: 'overview', path: '/', label: 'Overview Monitoring', icon: Activity, badge: null },
+    { id: 'nodes', path: '/nodes', label: 'Config & Nodes', icon: Database, badge: systemHealth?.total_nodes ? `${systemHealth.total_nodes}` : null },
+    { id: 'logs', path: '/logs', label: 'Live Activity Logs', icon: Terminal, badge: null },
+    { id: 'migration', path: '/migration', label: 'Smart DDL Migration', icon: Layers, badge: '330' },
+    { id: 'network', path: '/network', label: 'Multi-Device LAN', icon: Network, badge: null },
   ];
+
+  const isItemActive = (item) => {
+    if (item.path === '/') {
+      return location.pathname === '/' || location.pathname === '/overview';
+    }
+    return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+  };
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -63,13 +72,13 @@ export default function Sidebar({
       <ul className="nav-menu" style={{ padding: isCollapsed ? '16px 8px' : '16px 12px' }}>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentTab === item.id;
+          const isActive = isItemActive(item);
           return (
             <li key={item.id}>
               <button
                 type="button"
                 className={`nav-item-btn ${isActive ? 'active' : ''}`}
-                onClick={() => setCurrentTab(item.id)}
+                onClick={() => navigate(item.path)}
                 title={item.label}
               >
                 <Icon size={17} style={{ flexShrink: 0 }} />

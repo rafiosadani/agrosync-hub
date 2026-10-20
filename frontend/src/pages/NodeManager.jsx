@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Server, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  XCircle, 
-  RefreshCw, 
-  ShieldCheck, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Server,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  ShieldCheck,
   HelpCircle,
   Database,
   AlertTriangle,
@@ -47,11 +47,11 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     CompanyName: '',
     ServerPusat: '',
     DatabasePusat: '',
-    UserPusat: 'sa',
+    UserPusat: '',
     PasswordPusat: '',
     ServerLokal: '',
     DatabaseLokal: '',
-    UserLokal: 'sa',
+    UserLokal: '',
     PasswordLokal: ''
   });
 
@@ -167,7 +167,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
   const isDbConfigured = (dbName, srvPusat = formData.ServerPusat) => {
     const canonSrv = getCanonicalServer(srvPusat, networkInfo);
-    return (configs || []).some(c => 
+    return (configs || []).some(c =>
       getCanonicalServer(c.ServerPusat, networkInfo) === canonSrv &&
       (c.DatabasePusat || '').toLowerCase() === (dbName || '').toLowerCase()
     );
@@ -189,11 +189,11 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
       CompanyName: '',
       ServerPusat: '',
       DatabasePusat: '',
-      UserPusat: 'sa',
+      UserPusat: '',
       PasswordPusat: '',
       ServerLokal: '',
       DatabaseLokal: '',
-      UserLokal: 'sa',
+      UserLokal: '',
       PasswordLokal: ''
     });
     setResultPusat(null);
@@ -369,7 +369,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     setTestingPusat(true);
     setResultPusat(null);
     try {
-      const testDb = creationMode === 'batch' 
+      const testDb = creationMode === 'batch'
         ? (selectedDatabasesPusat[0] || 'master')
         : (formData.DatabasePusat || 'master');
 
@@ -843,23 +843,22 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.74rem',
                   marginBottom: '12px',
-                  background: resultPusat.success 
-                    ? 'rgba(16, 185, 129, 0.15)' 
-                    : (resultPusat.server_online && !resultPusat.database_exists) 
-                      ? 'rgba(245, 158, 11, 0.15)' 
+                  background: resultPusat.success
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : (resultPusat.server_online && !resultPusat.database_exists)
+                      ? 'rgba(245, 158, 11, 0.15)'
                       : 'rgba(244, 63, 94, 0.15)',
-                  color: resultPusat.success 
-                    ? '#34d399' 
-                    : (resultPusat.server_online && !resultPusat.database_exists) 
-                      ? '#fbbf24' 
+                  color: resultPusat.success
+                    ? '#34d399'
+                    : (resultPusat.server_online && !resultPusat.database_exists)
+                      ? '#fbbf24'
                       : '#fb7185',
-                  border: `1px solid ${
-                    resultPusat.success 
-                      ? 'rgba(16, 185, 129, 0.3)' 
-                      : (resultPusat.server_online && !resultPusat.database_exists) 
-                        ? 'rgba(245, 158, 11, 0.4)' 
-                        : 'rgba(244, 63, 94, 0.3)'
-                  }`
+                  border: `1px solid ${resultPusat.success
+                    ? 'rgba(16, 185, 129, 0.3)'
+                    : (resultPusat.server_online && !resultPusat.database_exists)
+                      ? 'rgba(245, 158, 11, 0.4)'
+                      : 'rgba(244, 63, 94, 0.3)'
+                    }`
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: (resultPusat.server_online && !resultPusat.database_exists) ? '8px' : '0' }}>
                     {resultPusat.success
@@ -944,7 +943,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                     autoComplete="on"
                     value={formData.UserPusat}
                     onChange={(e) => handleFieldChange('UserPusat', e.target.value)}
-                    placeholder="Contoh: sa"
+                    placeholder="Username login"
                   />
                   {formErrors.UserPusat && (
                     <div className="form-field-error">
@@ -964,7 +963,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                       style={{ paddingRight: '38px', width: '100%' }}
                       value={formData.PasswordPusat}
                       onChange={(e) => handleFieldChange('PasswordPusat', e.target.value)}
-                      placeholder={editingNodeId !== null ? "••••••••" : "Password sa"}
+                      placeholder={editingNodeId !== null ? "••••••••" : "Password login"}
                     />
                     <button
                       type="button"
@@ -1276,23 +1275,22 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.74rem',
                   marginBottom: '12px',
-                  background: resultLokal.success 
-                    ? 'rgba(16, 185, 129, 0.15)' 
-                    : (resultLokal.server_online && !resultLokal.database_exists) 
-                      ? 'rgba(245, 158, 11, 0.15)' 
+                  background: resultLokal.success
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : (resultLokal.server_online && !resultLokal.database_exists)
+                      ? 'rgba(245, 158, 11, 0.15)'
                       : 'rgba(244, 63, 94, 0.15)',
-                  color: resultLokal.success 
-                    ? '#34d399' 
-                    : (resultLokal.server_online && !resultLokal.database_exists) 
-                      ? '#fbbf24' 
+                  color: resultLokal.success
+                    ? '#34d399'
+                    : (resultLokal.server_online && !resultLokal.database_exists)
+                      ? '#fbbf24'
                       : '#fb7185',
-                  border: `1px solid ${
-                    resultLokal.success 
-                      ? 'rgba(16, 185, 129, 0.3)' 
-                      : (resultLokal.server_online && !resultLokal.database_exists) 
-                        ? 'rgba(245, 158, 11, 0.4)' 
-                        : 'rgba(244, 63, 94, 0.3)'
-                  }`
+                  border: `1px solid ${resultLokal.success
+                    ? 'rgba(16, 185, 129, 0.3)'
+                    : (resultLokal.server_online && !resultLokal.database_exists)
+                      ? 'rgba(245, 158, 11, 0.4)'
+                      : 'rgba(244, 63, 94, 0.3)'
+                    }`
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: (resultLokal.server_online && !resultLokal.database_exists) ? '8px' : '0' }}>
                     {resultLokal.success
@@ -1358,7 +1356,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                       </button>
 
                       {showLocalHostMenu && (
-                        <div 
+                        <div
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             position: 'absolute',
@@ -1504,7 +1502,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                     autoComplete="on"
                     value={formData.UserLokal}
                     onChange={(e) => handleFieldChange('UserLokal', e.target.value)}
-                    placeholder="Contoh: sa"
+                    placeholder="Username login"
                   />
                   {formErrors.UserLokal && (
                     <div className="form-field-error">
@@ -1524,7 +1522,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                       style={{ paddingRight: '38px', width: '100%' }}
                       value={formData.PasswordLokal}
                       onChange={(e) => handleFieldChange('PasswordLokal', e.target.value)}
-                      placeholder={editingNodeId !== null ? "••••••••" : "Password sa"}
+                      placeholder={editingNodeId !== null ? "••••••••" : "Password login"}
                     />
                     <button
                       type="button"

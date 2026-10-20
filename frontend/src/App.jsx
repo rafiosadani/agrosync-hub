@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import Overview from './pages/Overview';
@@ -12,7 +13,7 @@ import { useToast } from './components/Toast';
 
 export default function App() {
   const toast = useToast();
-  const [currentTab, setCurrentTab] = useState('overview');
+  const navigate = useNavigate();
   const [systemHealth, setSystemHealth] = useState(null);
   const [metricsSummary, setMetricsSummary] = useState(null);
   const [companyMetrics, setCompanyMetrics] = useState([]);
@@ -111,8 +112,6 @@ export default function App() {
     <div className="app-container">
       {/* Collapsible Left Sidebar */}
       <Sidebar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
         systemHealth={systemHealth}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
@@ -127,46 +126,55 @@ export default function App() {
           onTriggerSync={handleTriggerSync}
           onRefreshAll={() => fetchDashboardData(true)}
           isRefreshing={isRefreshing}
-          onNavigateToMigration={() => setCurrentTab('migration')}
-          onNavigateToNodes={() => setCurrentTab('nodes')}
+          onNavigateToMigration={() => navigate('/migration')}
+          onNavigateToNodes={() => navigate('/nodes')}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={handleToggleSidebar}
         />
 
         <main className="content-body">
-          {currentTab === 'overview' && (
-            <Overview
-              systemHealth={systemHealth}
-              metricsSummary={metricsSummary}
-              companyMetrics={companyMetrics}
-              configs={configs}
-              recentLogs={recentLogs}
-              syncStatus={syncStatus}
-              isLoading={isInitialLoading}
-              onNavigateToNodes={() => setCurrentTab('nodes')}
-              onNavigateToLogs={() => setCurrentTab('logs')}
-              onRefreshMetrics={fetchDashboardData}
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Overview
+                  systemHealth={systemHealth}
+                  metricsSummary={metricsSummary}
+                  companyMetrics={companyMetrics}
+                  configs={configs}
+                  recentLogs={recentLogs}
+                  syncStatus={syncStatus}
+                  isLoading={isInitialLoading}
+                  onNavigateToNodes={() => navigate('/nodes')}
+                  onNavigateToLogs={() => navigate('/logs')}
+                  onRefreshMetrics={fetchDashboardData}
+                />
+              }
             />
-          )}
-
-          {currentTab === 'nodes' && (
-            <NodeManager
-              configs={configs}
-              onRefreshConfigs={fetchDashboardData}
+            <Route path="/overview" element={<Navigate to="/" replace />} />
+            <Route
+              path="/nodes"
+              element={
+                <NodeManager
+                  configs={configs}
+                  onRefreshConfigs={fetchDashboardData}
+                />
+              }
             />
-          )}
-
-          {currentTab === 'logs' && (
-            <LiveLogs configs={configs} />
-          )}
-
-          {currentTab === 'migration' && (
-            <SchemaMigration />
-          )}
-
-          {currentTab === 'network' && (
-            <NetworkGuide />
-          )}
+            <Route
+              path="/logs"
+              element={<LiveLogs configs={configs} />}
+            />
+            <Route
+              path="/migration"
+              element={<SchemaMigration />}
+            />
+            <Route
+              path="/network"
+              element={<NetworkGuide />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </main>
       </div>
     </div>
