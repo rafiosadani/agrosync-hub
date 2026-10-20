@@ -7,10 +7,14 @@ from ...models.config_models import (
     ConnectionTestRequest, 
     ConnectionTestResponse,
     CreateDatabaseRequest,
-    CreateDatabaseResponse
+    CreateDatabaseResponse,
+    FetchDatabasesRequest,
+    FetchDatabasesResponse,
+    BatchCreateConfigRequest,
+    BatchCreateConfigResponse
 )
 from ...core.config_manager import ConfigManager
-from ...core.connection_tester import test_sql_connection, create_sql_database
+from ...core.connection_tester import test_sql_connection, create_sql_database, fetch_sql_databases
 
 router = APIRouter(prefix="/api/configs", tags=["Node Configuration"])
 
@@ -40,8 +44,28 @@ def get_config_by_id(node_id: int):
 
 @router.post("", response_model=DatabaseNodeMasked, status_code=status.HTTP_201_CREATED)
 def create_config(node: DatabaseNodeConfig):
-    """Menambahkan node database baru ke file sync_config.json secara aman."""
-    return ConfigManager.add_node(node)
+    """Menambahkan node database baru ke file sync_config.json secara aman dengan validasi anti-duplikasi."""
+    try:
+        return ConfigManager.add_node(node)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/batch", response_model=BatchCreateConfigResponse, status_code=status.HTTP_201_CREATED)
+def create_configs_batch(payload: BatchCreateConfigRequest):
+    """Menambahkan banyak konfigurasi node database sekaligus (Batch Creation)."""
+    try:
+        created = ConfigManager.add_nodes_batch(payload.nodes)
+        return BatchCreateConfigResponse(
+            success=True,
+            message=f"Berhasil menambahkan {len(created)} konfigurasi node database baru.",
+            nodes=created
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{node_id}", response_model=DatabaseNodeMasked)
 def update_config(node_id: int, updates: DatabaseNodeUpdate):
@@ -49,7 +73,9 @@ def update_config(node_id: int, updates: DatabaseNodeUpdate):
     try:
         return ConfigManager.update_node(node_id, updates)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        err_msg = str(e)
+        code = status.HTTP_409_CONFLICT if ("Duplikasi" in err_msg or "Konflik" in err_msg) else status.HTTP_404_NOT_FOUND
+        raise HTTPException(status_code=code, detail=err_msg)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -97,4 +123,23 @@ def create_database(payload: CreateDatabaseRequest):
     if not ok:
         raise HTTPException(status_code=400, detail=msg)
     return CreateDatabaseResponse(success=True, message=msg)
+
+
+@router.post("/fetch-databases", response_model=FetchDatabasesResponse)
+def fetch_databases(payload: FetchDatabasesRequest):
+    """Mengambil daftar seluruh database aktif (user databases) dari SQL Server."""
+    pwd = payload.password
+    if (not pwd or pwd == "••••••••") and payload.node_id is not None:
+        cfg = ConfigManager.get_by_id(payload.node_id)
+        if cfg:
+            pwd = cfg.get("PasswordPusat" if payload.role == "pusat" else "PasswordLokal", "")
+
+    ok, dbs, msg = fetch_sql_databases(
+        server=payload.server,
+        user=payload.user,
+        password=pwd
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return FetchDatabasesResponse(success=True, databases=dbs, message=msg)
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export default function Modal({ isOpen, onClose, title, children, dismissOnBackdrop = false }) {
+export default function Modal({ isOpen, onClose, title, children, dismissOnBackdrop = false, maxWidth = '840px' }) {
   if (!isOpen) return null;
 
   return (
@@ -9,7 +9,7 @@ export default function Modal({ isOpen, onClose, title, children, dismissOnBackd
       className="modal-overlay" 
       onClick={dismissOnBackdrop ? onClose : undefined}
     >
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {title}

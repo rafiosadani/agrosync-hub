@@ -61,3 +61,27 @@ class CreateDatabaseResponse(BaseModel):
     success: bool
     message: str
 
+
+class FetchDatabasesRequest(BaseModel):
+    server: str
+    user: str
+    password: str
+    node_id: Optional[int] = None
+    role: Optional[str] = "pusat"
+
+
+class FetchDatabasesResponse(BaseModel):
+    success: bool
+    databases: List[str] = []
+    message: str
+
+
+class BatchCreateConfigRequest(BaseModel):
+    nodes: List[DatabaseNodeConfig]
+
+
+class BatchCreateConfigResponse(BaseModel):
+    success: bool
+    message: str
+    nodes: List[DatabaseNodeMasked] = []
+

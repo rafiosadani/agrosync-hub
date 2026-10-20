@@ -20,5 +20,38 @@
     "DatabaseLokal": "APIdb002",
     "UserLokal": "sa",
     "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "AGC",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "AGCdb001",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "AGCdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "TTM",
+    "ServerPusat": "rafioosadanis-MacBook-Air.local,1433",
+    "DatabasePusat": "TTMdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "rafioosadanis-MacBook-Air.local,1435",
+    "DatabaseLokal": "TTMdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "API",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "APIdb001",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "APIdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
   }
 ]

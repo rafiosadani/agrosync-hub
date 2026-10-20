@@ -176,3 +176,44 @@ def create_sql_database(server: str, database: str, user: str, password: str, ti
             return False, f"Gagal membuat database '{database}': {last_err}"
 
     return False, f"Gagal koneksi ODBC ke master: {last_err}"
+
+
+def fetch_sql_databases(server: str, user: str, password: str, timeout: int = 5) -> Tuple[bool, list, str]:
+    """
+    Mengambil seluruh daftar database aktif non-sistem (user databases) dari SQL Server
+    dengan membaca catalog view sys.databases melalui database master.
+    """
+    target_server = normalize_server_address(server)
+    drivers_to_try = [CURRENT_ODBC_DRIVER] + [d for d in PREFERRED_ODBC_DRIVERS if d != CURRENT_ODBC_DRIVER]
+    last_err = ""
+
+    for driver in drivers_to_try:
+        master_conn_str = (
+            f"DRIVER={{{driver}}};"
+            f"SERVER={target_server};"
+            f"DATABASE=master;"
+            f"UID={user};"
+            f"PWD={password};"
+            f"TrustServerCertificate=yes;"
+        )
+        try:
+            conn = pyodbc.connect(master_conn_str, timeout=timeout)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT name FROM sys.databases "
+                "WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb') "
+                "  AND state_desc = 'ONLINE' "
+                "ORDER BY name ASC;"
+            )
+            rows = cursor.fetchall()
+            databases = [row[0] for row in rows if row and row[0]]
+            cursor.close()
+            conn.close()
+            return True, databases, f"Berhasil memuat {len(databases)} database dari {server}"
+        except Exception as e:
+            last_err = str(e)
+            if "Data source name not found" in last_err or "driver not found" in last_err.lower():
+                continue
+            return False, [], f"Gagal mengambil database dari server: {last_err}"
+
+    return False, [], f"Gagal koneksi ODBC: {last_err}"

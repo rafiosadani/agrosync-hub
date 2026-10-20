@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import socket
 import threading
 from typing import List, Dict, Any, Optional
 from ..config import CONFIG_PATH, BACKUP_CONFIG_PATH
@@ -71,10 +72,106 @@ class ConfigManager:
             return raw[node_id]
         return None
 
+    @staticmethod
+    def get_canonical_endpoint(server_str: str) -> str:
+        """
+        Normalisasi endpoint server (host,port atau host:port) sehingga:
+        - Hostname lokal (.local), IP LAN aktif, localhost, dan 127.0.0.1 pada mesin yang sama
+          dinormalisasi ke canonical identifier '__LOCAL__:<port>'.
+        - Server remote dengan port dan IP resolusi yang sama akan cocok.
+        """
+        s = (server_str or "").strip()
+        if not s:
+            return ""
+
+        port = "1433"
+        if "," in s:
+            parts = s.split(",")
+            host = parts[0].strip()
+            if len(parts) > 1 and parts[1].strip().isdigit():
+                port = parts[1].strip()
+        elif ":" in s and not s.startswith("["):
+            parts = s.split(":")
+            host = parts[0].strip()
+            if len(parts) > 1 and parts[1].strip().isdigit():
+                port = parts[1].strip()
+        else:
+            host = s
+
+        host_lower = host.lower()
+        if host_lower in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
+            return f"__LOCAL__:{port}"
+
+        try:
+            local_hostname = socket.gethostname().lower()
+            if host_lower in (local_hostname, f"{local_hostname}.local"):
+                return f"__LOCAL__:{port}"
+
+            from .subnet_scanner import get_local_network_info
+            local_info = get_local_network_info()
+            local_ip = local_info.get("local_ip", "")
+            if host_lower == local_ip.lower():
+                return f"__LOCAL__:{port}"
+
+            resolved_ip = socket.gethostbyname(host)
+            if resolved_ip in ("127.0.0.1", "127.0.1.1", "0.0.0.0") or (local_ip and resolved_ip == local_ip):
+                return f"__LOCAL__:{port}"
+
+            return f"{resolved_ip}:{port}"
+        except Exception:
+            clean_host = host_lower.replace(".local", "")
+            return f"{clean_host}:{port}"
+
+    @staticmethod
+    def check_duplicate(node_data: Dict[str, Any], existing_nodes: List[Dict[str, Any]], exclude_id: Optional[int] = None) -> Optional[str]:
+        """
+        Memeriksa apakah terdapat duplikasi konfigurasi database node:
+        1. Exact duplicate: ServerPusat + DatabasePusat + ServerLokal + DatabaseLokal persis sama.
+        2. Target collision: ServerLokal + DatabaseLokal persis sama (satu database lokal tidak boleh menerima 2 sync worker).
+        Menggunakan canonical endpoint normalization sehingga IP LAN, mDNS (.local), dan localhost pada mesin yang sama terdeteksi ekuivalen.
+        """
+        def norm(srv: str, db: str) -> str:
+            canonical_srv = ConfigManager.get_canonical_endpoint(srv)
+            return f"{canonical_srv}/{(db or '').strip().lower()}"
+
+        new_src = norm(node_data.get("ServerPusat", ""), node_data.get("DatabasePusat", ""))
+        new_tgt = norm(node_data.get("ServerLokal", ""), node_data.get("DatabaseLokal", ""))
+        new_comp = (node_data.get("CompanyName", "")).strip().upper()
+
+        for idx, ex in enumerate(existing_nodes):
+            if exclude_id is not None and idx == exclude_id:
+                continue
+            ex_src = norm(ex.get("ServerPusat", ""), ex.get("DatabasePusat", ""))
+            ex_tgt = norm(ex.get("ServerLokal", ""), ex.get("DatabaseLokal", ""))
+            ex_comp = (ex.get("CompanyName", "")).strip().upper()
+
+            # Cek jika source dan destination persis sama
+            if new_src == ex_src and new_tgt == ex_tgt:
+                return (
+                    f"Duplikasi Terdeteksi: Konfigurasi untuk database pusat '{node_data.get('DatabasePusat')}' "
+                    f"menuju target '{node_data.get('DatabaseLokal')}' pada server lokal '{node_data.get('ServerLokal')}' "
+                    f"sudah terdaftar di Node #{idx + 1} ({ex_comp})."
+                )
+
+            # Cek jika target server + target database sama persis
+            if new_tgt == ex_tgt:
+                return (
+                    f"Konflik Target: Database lokal '{node_data.get('DatabaseLokal')}' pada host '{node_data.get('ServerLokal')}' "
+                    f"sudah digunakan sebagai target sinkronisasi oleh Node #{idx + 1} ({ex_comp} - {ex.get('DatabasePusat')}). "
+                    f"Satu database lokal tidak dapat menerima sinkronisasi dari dua sumber berbeda."
+                )
+
+        return None
+
     @classmethod
     def add_node(cls, node: DatabaseNodeConfig) -> DatabaseNodeMasked:
         raw = cls._read_raw()
         new_data = node.model_dump()
+
+        dup_err = cls.check_duplicate(new_data, raw)
+        if dup_err:
+            raise ValueError(dup_err)
+
         raw.append(new_data)
         cls._write_raw(raw)
         idx = len(raw) - 1
@@ -92,12 +189,51 @@ class ConfigManager:
         )
 
     @classmethod
+    def add_nodes_batch(cls, nodes: List[DatabaseNodeConfig]) -> List[DatabaseNodeMasked]:
+        """Menambahkan banyak konfigurasi node sekaligus dalam satu batch atomik."""
+        raw = cls._read_raw()
+        new_nodes_data = []
+
+        # Validasi seluruh node dalam batch terhadap data yang ada dan antar sesama di batch
+        for i, node in enumerate(nodes):
+            data = node.model_dump()
+            dup_err = cls.check_duplicate(data, raw)
+            if dup_err:
+                raise ValueError(dup_err)
+
+            dup_batch_err = cls.check_duplicate(data, new_nodes_data)
+            if dup_batch_err:
+                raise ValueError(f"Duplikasi dalam daftar input: {dup_batch_err}")
+
+            new_nodes_data.append(data)
+
+        start_idx = len(raw)
+        raw.extend(new_nodes_data)
+        cls._write_raw(raw)
+
+        created_masked = []
+        for offset, data in enumerate(new_nodes_data):
+            created_masked.append(DatabaseNodeMasked(
+                id=start_idx + offset,
+                CompanyName=data["CompanyName"],
+                ServerPusat=data["ServerPusat"],
+                DatabasePusat=data["DatabasePusat"],
+                UserPusat=data["UserPusat"],
+                PasswordPusat="••••••••",
+                ServerLokal=data["ServerLokal"],
+                DatabaseLokal=data["DatabaseLokal"],
+                UserLokal=data["UserLokal"],
+                PasswordLokal="••••••••"
+            ))
+        return created_masked
+
+    @classmethod
     def update_node(cls, node_id: int, updates: DatabaseNodeUpdate) -> DatabaseNodeMasked:
         raw = cls._read_raw()
         if not (0 <= node_id < len(raw)):
             raise ValueError(f"Node dengan ID {node_id} tidak ditemukan.")
 
-        current = raw[node_id]
+        current = raw[node_id].copy()
         update_dict = updates.model_dump(exclude_unset=True)
 
         for key, val in update_dict.items():
@@ -106,6 +242,10 @@ class ConfigManager:
                 if key in ("PasswordPusat", "PasswordLokal") and (val == "••••••••" or val == "********" or val == ""):
                     continue
                 current[key] = val
+
+        dup_err = cls.check_duplicate(current, raw, exclude_id=node_id)
+        if dup_err:
+            raise ValueError(dup_err)
 
         raw[node_id] = current
         cls._write_raw(raw)

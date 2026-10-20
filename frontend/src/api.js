@@ -89,6 +89,38 @@ export const api = {
     return res.json();
   },
 
+  async createBatchConfigs(nodes) {
+    const res = await fetch(`${API_BASE}/api/configs/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodes })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Gagal menambahkan batch node database');
+    }
+    return res.json();
+  },
+
+  async fetchDatabases(server, user, password, nodeId = null, role = 'pusat') {
+    const res = await fetch(`${API_BASE}/api/configs/fetch-databases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        server,
+        user,
+        password,
+        node_id: nodeId,
+        role
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Gagal mengambil daftar database dari server');
+    }
+    return res.json();
+  },
+
   // Sync Control
   async getSyncStatus() {
     const res = await fetch(`${API_BASE}/api/sync/status`);
