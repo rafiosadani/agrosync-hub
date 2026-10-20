@@ -24,7 +24,7 @@ export default function Sidebar({
     { id: 'nodes', path: '/nodes', label: 'Config & Nodes', icon: Database, badge: systemHealth?.total_nodes ? `${systemHealth.total_nodes}` : null },
     { id: 'logs', path: '/logs', label: 'Live Activity Logs', icon: Terminal, badge: null },
     { id: 'migration', path: '/migration', label: 'Smart DDL Migration', icon: Layers, badge: '330' },
-    { id: 'network', path: '/network', label: 'Multi-Device LAN', icon: Network, badge: null },
+    { id: 'network', path: '/network', label: 'Panduan & Jaringan', icon: Network, badge: null },
   ];
 
   const isItemActive = (item) => {

@@ -8,7 +8,9 @@ import {
   RotateCcw,
   Wifi,
   Radar,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2,
+  Pause
 } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import NodeHealthCard from '../components/NodeHealthCard';
@@ -536,11 +538,53 @@ export default function Overview({
 
         {isLoading ? (
           <SkeletonNodeHealthCards count={configs?.length || 3} />
-        ) : (
+        ) : systemHealth?.nodes && systemHealth.nodes.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px' }}>
-            {systemHealth?.nodes?.map((node) => (
+            {systemHealth.nodes.map((node) => (
               <NodeHealthCard key={node.id} node={node} />
             ))}
+          </div>
+        ) : (
+          <div className="card" style={{
+            textAlign: 'center',
+            padding: '36px 20px',
+            border: '1px dashed var(--border-subtle)',
+            background: 'var(--bg-card-inner)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px'
+          }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              background: 'rgba(56, 189, 248, 0.1)',
+              color: '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Database size={22} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                Belum Ada Node Database yang Dikonfigurasi
+              </h4>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.5 }}>
+                Database destination (lokal) atau source (pusat) belum terhubung ke sistem. Silakan daftarkan database node baru untuk memulai sinkronisasi DML & migrasi DDL.
+              </p>
+            </div>
+            <button 
+              type="button" 
+              className="btn btn-primary btn-sm" 
+              onClick={onNavigateToNodes}
+              style={{ marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <PlusCircle size={14} />
+              <span>+ Konfigurasi Node Database Pertama</span>
+            </button>
           </div>
         )}
       </div>

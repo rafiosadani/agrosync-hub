@@ -1,74 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Network, 
   Wifi, 
-  ShieldAlert, 
-  Terminal, 
-  CheckCircle2, 
   Server, 
   Laptop, 
   ArrowRight, 
   Copy, 
   Check, 
-  ExternalLink 
+  Database,
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../api';
+import { useToast } from '../components/Toast';
 
 export default function NetworkGuide() {
-  const [copiedIndex, setCopiedIndex] = useState(null);
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [activeTab, setActiveTab] = useState('database-setup');
+  const [networkInfo, setNetworkInfo] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null);
 
-  const copyToClipboard = (text, idx) => {
+  useEffect(() => {
+    api.getNetworkInfo().then(info => {
+      if (info && (info.local_ip || info.status === 'success')) {
+        setNetworkInfo(info);
+      }
+    }).catch(err => {
+      console.debug("Gagal memuat network info di guide:", err);
+    });
+  }, []);
+
+  const handleCopy = (text, key, label) => {
     navigator.clipboard.writeText(text);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
+    setCopiedKey(key);
+    toast.success('Disalin ke Clipboard', `${label}: ${text}`);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const steps = [
-    {
-      title: "Langkah 1: Hubungkan Kedua Perangkat ke Jaringan yang Sama (Wi-Fi / LAN)",
-      description: "Pastikan laptop Anda (host database & backend) dan komputer target/client berada di subnet atau router Wi-Fi yang sama (misal sama-sama terhubung ke Wi-Fi kantor atau hotspot seluler).",
-      command: "# Pada macOS / Linux:\nifconfig | grep \"inet \" | grep -v 127.0.0.1\n\n# Pada Windows (Command Prompt / PowerShell):\nipconfig",
-      note: "Catat IPv4 Anda, misalnya: 192.168.1.50"
-    },
-    {
-      title: "Langkah 2: Konfigurasi SQL Server TCP/IP Port",
-      description: "Jika SQL Server berjalan langsung di Windows OS, pastikan protokol TCP/IP diaktifkan di SQL Server Configuration Manager dan mendengarkan port 1433 (Pusat) dan 1434 (Lokal). Jika berjalan di Docker container, Docker sudah otomatis mapping port 0.0.0.0:1433 dan 0.0.0.0:1434.",
-      command: "# Verifikasi listener port di terminal host:\nnc -zv localhost 1433\nnc -zv localhost 1434",
-      note: "Status harus menunjukkan 'Connection succeeded'."
-    },
-    {
-      title: "Langkah 3: Buka Port pada Firewall Host",
-      description: "Pastikan firewall di laptop Anda mengizinkan lalu lintas masuk (Inbound) untuk port database dan port backend API.",
-      command: "# Port yang wajib dibuka di Firewall:\n- Port 8000 : FastAPI Backend REST API\n- Port 5173 : Vite Web Dashboard (Frontend)\n- Port 1433 : SQL Server Pusat\n- Port 1434 : SQL Server Lokal",
-      note: "Pada macOS: Sistem Pengaturan ➔ Jaringan ➔ Firewall. Pada Windows: Windows Defender Firewall ➔ Advanced Settings ➔ Inbound Rules ➔ New Rule (Port)."
-    },
-    {
-      title: "Langkah 4: Jalankan Backend & Frontend dengan Binding 0.0.0.0",
-      description: "Backend FastAPI dan Frontend Vite harus dijalankan dengan host 0.0.0.0 agar dapat menerima koneksi dari perangkat luar di jaringan LAN/Wi-Fi.",
-      command: "# Menjalankan Backend API (Terminal 1):\npython3 run_backend.py\n\n# Menjalankan Frontend Web (Terminal 2):\ncd frontend && npm run dev -- --host 0.0.0.0",
-      note: "Sistem telah dikonfigurasi dengan binding 0.0.0.0 secara default."
-    },
-    {
-      title: "Langkah 5: Akses dari Browser Client di Jaringan",
-      description: "Dari komputer client/target di jaringan, buka browser dan arahkan ke alamat IP laptop Anda.",
-      command: "# Buka di browser client jaringan:\nhttp://<IP_ANDA>:5173\n\n# Atau untuk melihat Swagger API Docs:\nhttp://<IP_ANDA>:8000/docs",
-      note: "Contoh: http://192.168.1.50:5173"
-    },
-    {
-      title: "Langkah 6: Uji Sinkronisasi Multi-Device (Simulasi DML)",
-      description: "Lakukan pengujian langsung antar-perangkat untuk memverifikasi keandalan mesin sinkronisasi.",
-      command: "# 1. Buka halaman Config & Node Manager pada web\n# 2. Masukkan IP nyata SQL Server target pada Server Pusat atau Server Lokal\n# 3. Klik tombol 'Test Koneksi' untuk mengukur ping latensi\n# 4. Klik 'Sync Now (On-Demand)' dan amati Live Terminal Viewer!",
-      note: "Setiap data INSERT, UPDATE perbedaan kolom, dan DELETE akan tercatat sejajar tanpa delay."
-    }
-  ];
+  const localIp = networkInfo?.local_ip || '192.168.x.x';
+  const localHostname = networkInfo?.local_hostname || 'host.local';
+  const networkWebUrl = `http://${localIp}:5173`;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)',
         border: '1px solid rgba(6, 182, 212, 0.25)',
         borderRadius: 'var(--radius-lg)',
-        padding: '24px 28px',
+        padding: '22px 26px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -82,152 +64,630 @@ export default function NetworkGuide() {
             padding: '12px',
             borderRadius: 'var(--radius-md)'
           }}>
-            <Network size={32} />
+            <Network size={30} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              Panduan Integrasi & Pengujian Multi-Device (Tahap 2)
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-              Prosedur teknis terstruktur untuk menghubungkan AgroSync Hub antar-device (Server Host & Client Target) dalam jaringan LAN/Wi-Fi nyata.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                Pusat Panduan & Integrasi Jaringan (Knowledge Hub)
+              </h2>
+              <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                Panduan Resmi v1.0
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '4px', margin: 0 }}>
+              Panduan interaktif langkah demi langkah untuk menghubungkan database node, solusi penanganan IP berubah, serta konfigurasi port multi-device.
             </p>
           </div>
         </div>
 
-        <span className="badge badge-info" style={{ fontSize: '0.82rem', padding: '6px 14px' }}>
-          Deployment Strategy: Tahap 2
-        </span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="btn btn-secondary btn-sm"
+            onClick={() => navigate('/nodes')}
+          >
+            <Database size={13} />
+            <span>Ke Config & Nodes</span>
+          </button>
+        </div>
       </div>
 
-      {/* Network Architecture Diagram */}
-      <div className="card">
-        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
-          Topologi Jaringan Pengujian Multi-Device
-        </h3>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          alignItems: 'center',
-          gap: '16px',
-          background: 'var(--bg-card-inner)',
-          padding: '20px',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-card, var(--shadow-sm))'
-        }}>
-          {/* Laptop Anda */}
-          <div style={{
-            textAlign: 'center',
-            padding: '16px',
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}>
-            <Laptop size={32} color="#10b981" style={{ margin: '0 auto 8px' }} />
-            <h4 style={{ color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>Laptop Anda (Host Server)</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.5 }}>
-              FastAPI (:8000) & Vite (:5173)<br />
-              SQL Server Pusat (:1433)<br />
-              IP: <code>192.168.x.x</code>
-            </p>
-          </div>
-
-          {/* Wi-Fi / Router */}
-          <div style={{ textAlign: 'center', padding: '12px' }}>
-            <div style={{
-              background: 'var(--bg-card)',
-              padding: '12px 16px',
+      {/* Live Device Status Banner */}
+      <div className="card" style={{ padding: '16px 20px', background: 'var(--bg-card-inner)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="pulse-dot pulse-dot-green" />
+            <span style={{ fontSize: '0.84rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+              Status Jaringan Host Anda:
+            </span>
+            <span style={{
+              background: 'rgba(56, 189, 248, 0.1)',
+              color: '#0284c7',
+              padding: '3px 10px',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              marginBottom: '8px',
-              display: 'inline-block',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              fontFamily: 'var(--font-mono)'
             }}>
-              <Wifi size={22} color="#0284c7" style={{ margin: '0 auto 4px' }} />
-              <div style={{ fontSize: '0.74rem', color: '#0284c7', fontWeight: 700 }}>LAN / WI-FI HUB</div>
-            </div>
-            <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.76rem' }}>Subnet Port 1433</span>
-              <ArrowRight size={16} />
-            </div>
+              IP: {localIp}
+            </span>
+            <span style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              color: '#10b981',
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              fontFamily: 'var(--font-mono)'
+            }}>
+              Hostname: {localHostname}
+            </span>
           </div>
 
-          {/* Perangkat Client / Target */}
-          <div style={{
-            textAlign: 'center',
-            padding: '16px',
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}>
-            <Laptop size={32} color="#6366f1" style={{ margin: '0 auto 8px' }} />
-            <h4 style={{ color: '#6366f1', fontWeight: 700, fontSize: '0.9rem' }}>Server Target / Client (Node)</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '6px', lineHeight: 1.5 }}>
-              Web Dashboard Browser<br />
-              SQL Server Lokal (:1433)<br />
-              IP: <code>192.168.x.y</code>
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Akses dari Laptop Lain di WiFi:</span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handleCopy(networkWebUrl, 'url', 'URL Akses Jaringan')}
+              style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              {copiedKey === 'url' ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+              <span>{networkWebUrl}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Steps List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {steps.map((st, i) => (
-          <div key={i} className="card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {st.title}
-              </h4>
+      {/* Segmented Tab Navigation Bar */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid var(--border-subtle)',
+        gap: '8px',
+        paddingBottom: '2px'
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('database-setup')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'database-setup' ? 'var(--bg-card)' : 'transparent',
+            border: activeTab === 'database-setup' ? '1px solid var(--border-subtle)' : '1px solid transparent',
+            borderBottom: activeTab === 'database-setup' ? '2px solid #0284c7' : '1px solid transparent',
+            borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
+            color: activeTab === 'database-setup' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'database-setup' ? 700 : 500,
+            fontSize: '0.86rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Database size={15} color={activeTab === 'database-setup' ? '#0284c7' : 'inherit'} />
+          <span>1. Setup Node Database (Pusat ➔ Lokal)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ip-resolution')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'ip-resolution' ? 'var(--bg-card)' : 'transparent',
+            border: activeTab === 'ip-resolution' ? '1px solid var(--border-subtle)' : '1px solid transparent',
+            borderBottom: activeTab === 'ip-resolution' ? '2px solid #10b981' : '1px solid transparent',
+            borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
+            color: activeTab === 'ip-resolution' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'ip-resolution' ? 700 : 500,
+            fontSize: '0.86rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Wifi size={15} color={activeTab === 'ip-resolution' ? '#10b981' : 'inherit'} />
+          <span>2. Solusi IP Berubah (Hostname vs Tailscale)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('firewall-ports')}
+          style={{
+            padding: '10px 18px',
+            background: activeTab === 'firewall-ports' ? 'var(--bg-card)' : 'transparent',
+            border: activeTab === 'firewall-ports' ? '1px solid var(--border-subtle)' : '1px solid transparent',
+            borderBottom: activeTab === 'firewall-ports' ? '2px solid #6366f1' : '1px solid transparent',
+            borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
+            color: activeTab === 'firewall-ports' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'firewall-ports' ? 700 : 500,
+            fontSize: '0.86rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Network size={15} color={activeTab === 'firewall-ports' ? '#6366f1' : 'inherit'} />
+          <span>3. Topologi Jaringan & Port Firewall</span>
+        </button>
+      </div>
+
+      {/* TAB 1: Setup Node Database */}
+      {activeTab === 'database-setup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card" style={{ padding: '22px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              Alur Setup Database Node Baru (Pusat ➔ Lokal)
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
+              Ikuti 4 langkah mudah di bawah ini untuk menghubungkan database ERP Server Pusat ke SQL Server Lokal target Anda.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {/* Step Card 1 */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>1</span>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Identitas Perusahaan
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  Masukkan nama kode entitas perusahaan (misal: <code>API</code>, <code>AGC</code>, atau <code>TTM</code>). Nama ini digunakan untuk mengelompokkan kartu transaksi di dashboard.
+                </p>
+              </div>
+
+              {/* Step Card 2 */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>2</span>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Tarik Batch dari Pusat
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  Gunakan tombol <strong>"Tarik dari Server (Batch)"</strong>. Sistem akan langsung membaca daftar database nyata dari SQL Server Pusat via <code>sys.databases</code> tanpa perlu input satu per satu.
+                </p>
+              </div>
+
+              {/* Step Card 3 */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: '#f59e0b',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>3</span>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Auto-Mapping 1:1 & Buat DB
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  Nama database di lokal otomatis dipetakan 1:1 sama dengan pusat. Jika database belum ada di server lokal, cukup klik tombol <strong>"Buat Database Otomatis"</strong> di modal.
+                </p>
+              </div>
+
+              {/* Step Card 4 */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: '#6366f1',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>4</span>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Migrasi DDL Skema (330+ Tabel)
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  Setelah database lokal siap, buka menu <strong>Smart DDL Migration</strong> untuk membuat 330+ tabel dan skema kolom identik secara non-destruktif (*Zero Data Loss*).
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              marginTop: '20px',
+              padding: '14px 18px',
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Sparkles size={18} color="#0284c7" />
+                <span style={{ fontSize: '0.84rem', color: 'var(--text-primary)' }}>
+                  Siap menambahkan database node pertama Anda sekarang?
+                </span>
+              </div>
               <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => copyToClipboard(st.command, i)}
-                title="Salin Perintah"
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate('/nodes')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                {copiedIndex === i ? (
-                  <>
-                    <Check size={12} color="#10b981" />
-                    <span style={{ color: '#10b981' }}>Disalin!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={12} />
-                    <span>Salin</span>
-                  </>
-                )}
+                <span>Buka Menu Config & Nodes</span>
+                <ArrowRight size={14} />
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>
-              {st.description}
+      {/* TAB 2: Solusi IP Berubah */}
+      {activeTab === 'ip-resolution' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card" style={{ padding: '22px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              Solusi Praktis Mengatasi Perubahan IP Jaringan (DHCP)
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
+              Ketika laptop berpindah lokasi WiFi atau router restart, alamat IP angka (misal: <code>192.168.1.100</code>) sering berubah. Pilih salah satu dari 2 solusi enterprise di bawah ini agar koneksi tidak pernah terputus:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+              {/* Opsi 1: Hostname */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Laptop size={20} color="#10b981" />
+                      <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                        Opsi 1: Hostname Komputer (.local)
+                      </h4>
+                    </div>
+                    <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Tanpa Install Apapun</span>
+                  </div>
+
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+                    Gunakan <strong>Nama Komputer (Hostname)</strong> alih-alih IP angka. Protokol mDNS (Multicast DNS) di Windows & Mac akan otomatis mencari IP baru di jaringan WiFi yang sama!
+                  </p>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 600 }}>Cara Cek Hostname di Windows (CMD/PowerShell):</span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#080b12',
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      color: '#34d399',
+                      marginTop: '4px'
+                    }}>
+                      <span>hostname</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('hostname', 'host_win', 'Perintah Hostname Windows')}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        title="Salin"
+                      >
+                        {copiedKey === 'host_win' ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format Input di AgroSync Hub:</span>
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      color: '#10b981',
+                      marginTop: '4px'
+                    }}>
+                      WIN-SERVER-01,1433 atau MacBook.local,1434
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
+                  ✓ Syarat: Kedua perangkat terhubung ke WiFi / LAN yang sama.
+                </div>
+              </div>
+
+              {/* Opsi 2: Tailscale */}
+              <div style={{
+                background: 'var(--bg-card-inner)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShieldCheck size={20} color="#6366f1" />
+                      <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                        Opsi 2: Tailscale Mesh VPN
+                      </h4>
+                    </div>
+                    <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>Standar Enterprise & WFH</span>
+                  </div>
+
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+                    Solusi terbaik jika Server Pusat di kantor dan laptop lokal di rumah (beda WiFi / WFH). Tailscale memberikan <strong>IP Virtual Statis Permanen (100.x.y.z)</strong> yang tidak akan pernah berubah.
+                  </p>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 600 }}>Langkah Pemasangan Cepat:</span>
+                    <ul style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', paddingLeft: '18px', marginTop: '4px', lineHeight: 1.6 }}>
+                      <li>Unduh di <a href="https://tailscale.com" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>tailscale.com</a> di kedua komputer.</li>
+                      <li>Login dengan akun yang sama & nyalakan koneksi.</li>
+                      <li>Salin IP Tailscale (contoh: <code>100.85.20.110</code>).</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format Input di AgroSync Hub:</span>
+                    <div style={{
+                      background: 'rgba(99, 102, 241, 0.08)',
+                      border: '1px solid rgba(99, 102, 241, 0.25)',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      color: '#818cf8',
+                      marginTop: '4px'
+                    }}>
+                      100.85.20.110,1433
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
+                  ✓ Beda WiFi, tethering HP, maupun antar-kota tetap terhubung lancar.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: Topologi LAN & Port Firewall */}
+      {activeTab === 'firewall-ports' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Architecture Card */}
+          <div className="card" style={{ padding: '22px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              Topologi Replikasi Hub-and-Spoke
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '18px', lineHeight: 1.5 }}>
+              AgroSync Hub bertindak sebagai koordinator terpusat yang menghubungkan database SQL Server Pusat dengan berbagai server lokal cabang secara paralel.
             </p>
 
             <div style={{
-              background: '#080b12',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '12px 14px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.8rem',
-              color: '#34d399',
-              whiteSpace: 'pre-wrap',
-              marginBottom: '10px'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              alignItems: 'center',
+              gap: '16px',
+              background: 'var(--bg-card-inner)',
+              padding: '20px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)'
             }}>
-              {st.command}
+              {/* Server Pusat */}
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <Server size={30} color="#10b981" style={{ margin: '0 auto 8px' }} />
+                <h4 style={{ color: '#10b981', fontWeight: 700, fontSize: '0.88rem', margin: '0 0 4px' }}>Server Pusat (HQ Hub)</h4>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.76rem', lineHeight: 1.4 }}>
+                  Port SQL Server: <code>1433</code><br />
+                  Source of Truth ERP
+                </div>
+              </div>
+
+              {/* Wi-Fi / Router */}
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <div style={{
+                  background: 'var(--bg-card)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  marginBottom: '8px',
+                  display: 'inline-block'
+                }}>
+                  <Wifi size={20} color="#0284c7" style={{ margin: '0 auto 4px' }} />
+                  <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700 }}>LAN / WI-FI / MESH</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.74rem' }}>Port 1433 / 1434</span>
+                  <ArrowRight size={14} />
+                </div>
+              </div>
+
+              {/* Server Lokal Target */}
+              <div style={{
+                textAlign: 'center',
+                padding: '16px',
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(99, 102, 241, 0.3)'
+              }}>
+                <Laptop size={30} color="#6366f1" style={{ margin: '0 auto 8px' }} />
+                <h4 style={{ color: '#6366f1', fontWeight: 700, fontSize: '0.88rem', margin: '0 0 4px' }}>Server Lokal (Branch Spokes)</h4>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.76rem', lineHeight: 1.4 }}>
+                  Port Target: <code>1434</code> / <code>1435</code><br />
+                  Dashboard Web: <code>:5173</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Port Matrix Table */}
+          <div className="card" style={{ padding: '22px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
+              Daftar Port Layanan & Firewall (Inbound Rules)
+            </h3>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '10px 14px' }}>Port</th>
+                    <th style={{ padding: '10px 14px' }}>Layanan</th>
+                    <th style={{ padding: '10px 14px' }}>Protokol</th>
+                    <th style={{ padding: '10px 14px' }}>Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#10b981' }}>1433</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>SQL Server Pusat (Source)</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>TCP</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>Wajib dibuka di Firewall host server pusat agar spoke dapat menarik data.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38bdf8' }}>1434 / 1435</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>SQL Server Lokal (Target)</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>TCP</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>Listener instance lokal di laptop / server cabang untuk menerima INSERT/UPDATE.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f59e0b' }}>8000</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>FastAPI Backend REST API</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>HTTP</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>Endpoint sinkronisasi engine & dokumentasi Swagger (<code>/docs</code>).</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#818cf8' }}>5173</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-primary)' }}>Vite Web Dashboard UI</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>HTTP</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>Antarmuka grafis yang dapat diakses dari browser komputer lain di jaringan LAN.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            {st.note && (
-              <div style={{ fontSize: '0.76rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle2 size={13} color="#fbbf24" />
-                <span>Catatan: {st.note}</span>
+            {/* Test Connection Commands */}
+            <div style={{ marginTop: '20px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Perintah Verifikasi Port Terbuka (Uji Socket Ping):
+              </span>
+              <div style={{
+                background: '#080b12',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 14px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.78rem',
+                color: '#34d399',
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <span>nc -zv {localIp} 1433</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleCopy(`nc -zv ${localIp} 1433`, 'ping_cmd', 'Perintah Ping Port')}
+                  style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                >
+                  {copiedKey === 'ping_cmd' ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                  <span>Salin Perintah</span>
+                </button>
               </div>
-            )}
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
