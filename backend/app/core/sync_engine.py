@@ -377,6 +377,19 @@ class EnterpriseSyncEngine:
                 return True
             return False
 
+    def remove_metrics_for_config(self, db_p: str, srv_l: str = None):
+        """Menghapus entri metrik saat sebuah konfigurasi database node dihapus dari config."""
+        with self._lock:
+            to_del = []
+            for k, val in list(self.metrics_by_company.items()):
+                if val.get("database_pusat") == db_p:
+                    if not srv_l or val.get("server_lokal") == srv_l:
+                        to_del.append(k)
+            for k in to_del:
+                del self.metrics_by_company[k]
+            if to_del:
+                self._save_state()
+
     def get_status(self) -> Dict[str, Any]:
         with self._lock:
             # Pastikan setiap database node dari sync_config.json memiliki slot metrik awal
@@ -393,13 +406,15 @@ class EnterpriseSyncEngine:
                     active_keys.add(key)
 
                     if key not in self.metrics_by_company:
-                        # Cek apakah ada old metric untuk company & db_p yang server-nya sudah tidak aktif di config
-                        # (Deteksi perubahan IP / hostname saat runtime)
+                        # Cek apakah ada old metric untuk database_pusat ini yang kuncinya lama
+                        # (Deteksi perubahan nama CompanyName atau perubahan IP/hostname server lokal)
                         migrated_old_key = None
+                        all_active_possible = [
+                            f"{c.get('CompanyName')} - {c.get('DatabasePusat')} ({c.get('ServerLokal')})" 
+                            for c in raw_configs
+                        ]
                         for old_k, old_val in list(self.metrics_by_company.items()):
-                            if (old_val.get("company_name") == c_name and 
-                                old_val.get("database_pusat") == db_p and 
-                                old_k not in [f"{c.get('CompanyName')} - {c.get('DatabasePusat')} ({c.get('ServerLokal')})" for c in raw_configs]):
+                            if old_k not in all_active_possible and old_val.get("database_pusat") == db_p:
                                 migrated_old_key = old_k
                                 break
 
@@ -408,6 +423,9 @@ class EnterpriseSyncEngine:
                             self.metrics_by_company[key] = {
                                 **old_val,
                                 "node_key": key,
+                                "company_name": c_name,
+                                "database_pusat": db_p,
+                                "database_lokal": db_l,
                                 "server_pusat": srv_p,
                                 "server_lokal": srv_l,
                                 "is_active": True
@@ -430,19 +448,20 @@ class EnterpriseSyncEngine:
                                 "is_active": True
                             }
                     else:
+                        self.metrics_by_company[key]["company_name"] = c_name
                         self.metrics_by_company[key]["server_pusat"] = srv_p
                         self.metrics_by_company[key]["server_lokal"] = srv_l
                         self.metrics_by_company[key]["is_active"] = True
 
-                        # Jika node aktif ini masih 0 transaksi, tetapi ada node non-aktif untuk DB ini yang memiliki riwayat:
+                        # Jika node aktif ini masih 0 transaksi, tetapi ada node lama untuk DB ini yang memiliki riwayat:
                         if self.metrics_by_company[key].get("total_inserts", 0) == 0:
                             for old_k, old_val in list(self.metrics_by_company.items()):
-                                if (old_k != key and old_val.get("company_name") == c_name and 
+                                if (old_k != key and old_k not in active_keys and 
                                     old_val.get("database_pusat") == db_p and 
-                                    old_k not in active_keys and old_val.get("total_inserts", 0) > 0):
-                                    self.metrics_by_company[key]["total_inserts"] = old_val["total_inserts"]
-                                    self.metrics_by_company[key]["total_updates"] = old_val["total_updates"]
-                                    self.metrics_by_company[key]["total_deletes"] = old_val["total_deletes"]
+                                    (old_val.get("total_inserts", 0) > 0 or old_val.get("total_updates", 0) > 0)):
+                                    self.metrics_by_company[key]["total_inserts"] = old_val.get("total_inserts", 0)
+                                    self.metrics_by_company[key]["total_updates"] = old_val.get("total_updates", 0)
+                                    self.metrics_by_company[key]["total_deletes"] = old_val.get("total_deletes", 0)
                                     self.metrics_by_company[key]["total_tables_synced"] = old_val.get("total_tables_synced", 0)
                                     self.metrics_by_company[key]["last_sync_time"] = old_val.get("last_sync_time")
                                     self.metrics_by_company[key]["status"] = old_val.get("status", "COMPLETED")
@@ -450,8 +469,22 @@ class EnterpriseSyncEngine:
                                     self._save_state()
                                     break
 
-                for k in self.metrics_by_company:
-                    self.metrics_by_company[k]["is_active"] = (k in active_keys)
+                # Bersihkan kartu yang sudah tidak ada di active_keys:
+                # 1. Jika raw_configs kosong (seluruh node dihapus), hapus semua kartu metrik agar kembali bersih 0
+                # 2. Jika ada kartu non-aktif dengan 0 transaksi, hapus otomatis agar tidak jadi kartu hantu/ghost card
+                for k in list(self.metrics_by_company.keys()):
+                    if k not in active_keys:
+                        if len(raw_configs) == 0:
+                            del self.metrics_by_company[k]
+                            self._save_state()
+                        else:
+                            val = self.metrics_by_company[k]
+                            total_ops = val.get("total_inserts", 0) + val.get("total_updates", 0) + val.get("total_deletes", 0)
+                            if total_ops == 0:
+                                del self.metrics_by_company[k]
+                                self._save_state()
+                            else:
+                                self.metrics_by_company[k]["is_active"] = False
             except Exception:
                 pass
 

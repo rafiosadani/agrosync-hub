@@ -688,14 +688,24 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                 configs.map((node) => (
                   <tr key={node.id}>
                     <td>
-                      <span style={{
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        color: '#34d399',
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontWeight: 800,
-                        fontSize: '0.85rem'
-                      }}>
+                      <span 
+                        title={node.CompanyName}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          color: '#10b981',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          border: '1px solid rgba(16, 185, 129, 0.28)',
+                          maxWidth: '220px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: 'inline-block',
+                          verticalAlign: 'middle'
+                        }}
+                      >
                         {node.CompanyName}
                       </span>
                     </td>

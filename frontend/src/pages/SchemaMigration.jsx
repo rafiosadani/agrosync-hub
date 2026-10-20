@@ -106,7 +106,7 @@ export default function SchemaMigration() {
           <ShieldCheck size={28} />
         </div>
         <div>
-          <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: '#34d399', marginBottom: '4px' }}>
+          <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>
             Jaminan Zero Data Loss & Non-Destructive DDL
           </h4>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
@@ -160,22 +160,37 @@ export default function SchemaMigration() {
               <div
                 key={i}
                 style={{
-                  background: 'rgba(0, 0, 0, 0.25)',
+                  background: 'var(--bg-card-inner)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
-                  padding: '18px'
+                  padding: '18px',
+                  boxShadow: 'var(--shadow-card, var(--shadow-sm))'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <strong style={{ color: '#34d399', fontSize: '0.95rem' }}>{res.company_name} ({res.database})</strong>
-                  <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.92rem', wordBreak: 'break-word' }}>
+                      {res.company_name} <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>({res.database})</span>
+                    </strong>
+                  </div>
+                  <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
                     {res.status}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div>Tabel Baru Dibuat: <strong style={{ color: 'var(--text-primary)' }}>{res.created_tables}</strong></div>
-                  <div>Tabel Diperiksa/Diperbarui: <strong style={{ color: 'var(--text-primary)' }}>{res.updated_tables}</strong></div>
-                  <div>Kolom Baru Ditambahkan: <strong style={{ color: 'var(--text-primary)' }}>{res.altered_columns}</strong></div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <span>Tabel Baru Dibuat:</span>
+                    <strong style={{ color: res.created_tables > 0 ? '#10b981' : 'var(--text-primary)' }}>{res.created_tables}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <span>Tabel Diperiksa/Diperbarui:</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{res.updated_tables}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <span>Kolom Baru Ditambahkan:</span>
+                    <strong style={{ color: res.altered_columns > 0 ? '#0284c7' : 'var(--text-primary)' }}>{res.altered_columns}</strong>
+                  </div>
                 </div>
               </div>
             ))}
@@ -194,7 +209,7 @@ export default function SchemaMigration() {
               <span
                 key={i}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
+                  background: 'var(--bg-card-inner)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-sm)',
                   padding: '6px 12px',

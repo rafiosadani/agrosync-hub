@@ -82,9 +82,18 @@ def update_config(node_id: int, updates: DatabaseNodeUpdate):
 @router.delete("/{node_id}")
 def delete_config(node_id: int):
     """Menghapus node database dari sync_config.json."""
+    raw = ConfigManager.get_all_raw()
+    deleted_cfg = raw[node_id] if (0 <= node_id < len(raw)) else None
+
     success = ConfigManager.delete_node(node_id)
     if not success:
         raise HTTPException(status_code=404, detail="Node tidak ditemukan")
+
+    if deleted_cfg:
+        db_p = deleted_cfg.get("DatabasePusat", "")
+        srv_l = deleted_cfg.get("ServerLokal", "")
+        sync_engine.remove_metrics_for_config(db_p=db_p, srv_l=srv_l)
+
     return {"success": True, "message": f"Node ID {node_id} berhasil dihapus"}
 
 @router.post("/test-connection", response_model=ConnectionTestResponse)

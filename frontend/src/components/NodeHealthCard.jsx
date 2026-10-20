@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Server, ArrowRight, CheckCircle2, XCircle, AlertCircle, Copy, Check } from 'lucide-react';
+import { Server, ArrowRight, CheckCircle2, XCircle, AlertCircle, Copy, Check, Database } from 'lucide-react';
 import { useToast } from './Toast';
 
 // Helper pembersih pesan error teknis SQL Server agar ramah dipahami pengguna
@@ -42,36 +42,46 @@ export default function NodeHealthCard({ node, onEdit }) {
   return (
     <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
       <div>
-        {/* Card Header: Company, DB Route, & Overall Status */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Card Header: 2-Row Responsive Layout */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-            <span style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              color: '#34d399',
-              padding: '3px 8px',
-              borderRadius: 'var(--radius-sm)',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              flexShrink: 0
-            }}>
+            <span 
+              title={node.company_name}
+              style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                color: '#10b981',
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                border: '1px solid rgba(16, 185, 129, 0.28)',
+                maxWidth: '200px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: 'inline-block'
+              }}
+            >
               {node.company_name}
             </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>{node.database_pusat}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>➔</span>
-                <span>{node.database_lokal}</span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Node #{node.id + 1}
-              </div>
-            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Node #{node.id + 1}
+            </span>
           </div>
 
           <span className={`badge ${isHealthy ? 'badge-success' : isDegraded ? 'badge-warning' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
             {node.overall_status}
           </span>
+        </div>
+
+        {/* Header Row 2: Database Name Route */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
+          <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+          <div style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>{node.database_pusat}</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>➔</span>
+            <span>{node.database_lokal}</span>
+          </div>
         </div>
 
         {/* Dedicated Responsive Server Panels */}
