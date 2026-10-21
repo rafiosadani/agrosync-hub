@@ -17,6 +17,7 @@ from ...models.config_models import (
 )
 from ...core.config_manager import ConfigManager
 from ...core.connection_tester import test_sql_connection, create_sql_database, fetch_sql_databases
+from ...core.sync_engine import sync_engine
 
 router = APIRouter(prefix="/api/configs", tags=["Node Configuration"])
 
@@ -48,7 +49,9 @@ def get_config_by_id(node_id: int):
 def create_config(node: DatabaseNodeConfig):
     """Menambahkan node database baru ke file sync_config.json secara aman dengan validasi anti-duplikasi."""
     try:
-        return ConfigManager.add_node(node)
+        res = ConfigManager.add_node(node)
+        sync_engine.reconcile_with_configs()
+        return res
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except Exception as e:
@@ -59,6 +62,7 @@ def create_configs_batch(payload: BatchCreateConfigRequest):
     """Menambahkan banyak konfigurasi node database sekaligus (Batch Creation)."""
     try:
         created = ConfigManager.add_nodes_batch(payload.nodes)
+        sync_engine.reconcile_with_configs()
         return BatchCreateConfigResponse(
             success=True,
             message=f"Berhasil menambahkan {len(created)} konfigurasi node database baru.",
@@ -82,6 +86,7 @@ def batch_update_credentials(payload: BatchUpdateCredentialsRequest):
             "PasswordLokal": payload.PasswordLokal,
         }
         all_masked = ConfigManager.update_credentials_batch(payload.node_ids, update_fields)
+        sync_engine.reconcile_with_configs()
         return BatchUpdateCredentialsResponse(
             success=True,
             message=f"Berhasil memperbarui kredensial untuk {len(payload.node_ids)} database node.",
@@ -97,7 +102,9 @@ def batch_update_credentials(payload: BatchUpdateCredentialsRequest):
 def update_config(node_id: int, updates: DatabaseNodeUpdate):
     """Memperbarui konfigurasi node database."""
     try:
-        return ConfigManager.update_node(node_id, updates)
+        res = ConfigManager.update_node(node_id, updates)
+        sync_engine.reconcile_with_configs()
+        return res
     except ValueError as e:
         err_msg = str(e)
         code = status.HTTP_409_CONFLICT if ("Duplikasi" in err_msg or "Konflik" in err_msg) else status.HTTP_404_NOT_FOUND
@@ -108,17 +115,11 @@ def update_config(node_id: int, updates: DatabaseNodeUpdate):
 @router.delete("/{node_id}")
 def delete_config(node_id: int):
     """Menghapus node database dari sync_config.json."""
-    raw = ConfigManager.get_all_raw()
-    deleted_cfg = raw[node_id] if (0 <= node_id < len(raw)) else None
-
     success = ConfigManager.delete_node(node_id)
     if not success:
         raise HTTPException(status_code=404, detail="Node tidak ditemukan")
 
-    if deleted_cfg:
-        db_p = deleted_cfg.get("DatabasePusat", "")
-        srv_l = deleted_cfg.get("ServerLokal", "")
-        sync_engine.remove_metrics_for_config(db_p=db_p, srv_l=srv_l)
+    sync_engine.reconcile_with_configs()
 
     return {"success": True, "message": f"Node ID {node_id} berhasil dihapus"}
 
@@ -149,11 +150,17 @@ def test_connection(payload: ConnectionTestRequest):
 @router.post("/create-database", response_model=CreateDatabaseResponse)
 def create_database(payload: CreateDatabaseRequest):
     """Membuat database baru di target SQL Server secara otomatis."""
+    pwd = payload.password
+    if (not pwd or pwd == "••••••••" or pwd == "********") and payload.node_id is not None:
+        cfg = ConfigManager.get_by_id(payload.node_id)
+        if cfg:
+            pwd = cfg.get("PasswordPusat" if payload.role == "pusat" else "PasswordLokal", "")
+
     ok, msg = create_sql_database(
         server=payload.server,
         database=payload.database,
         user=payload.user,
-        password=payload.password
+        password=pwd
     )
     if not ok:
         raise HTTPException(status_code=400, detail=msg)

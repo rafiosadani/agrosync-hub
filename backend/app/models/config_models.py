@@ -56,6 +56,8 @@ class CreateDatabaseRequest(BaseModel):
     database: str
     user: str
     password: str
+    node_id: Optional[int] = None
+    role: Optional[str] = "lokal"
 
 class CreateDatabaseResponse(BaseModel):
     success: bool

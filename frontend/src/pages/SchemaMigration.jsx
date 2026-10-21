@@ -155,39 +155,67 @@ export default function SchemaMigration() {
             <span className="badge badge-success">Selesai Berhasil</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             {migrationResults.map((res, i) => (
               <div
                 key={i}
                 style={{
-                  background: 'var(--bg-card-inner)',
+                  background: 'var(--bg-card)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                   padding: '18px',
-                  boxShadow: 'var(--shadow-card, var(--shadow-sm))'
+                  boxShadow: 'var(--shadow-card, var(--shadow-sm))',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <div>
+                  {/* Header Row 1: Company Badge (Left) & Status Badge (Right) */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                    <span
+                      title={res.company_name}
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        color: '#10b981',
+                        padding: '3px 9px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        letterSpacing: '0.02em',
+                        border: '1px solid rgba(16, 185, 129, 0.28)',
+                        display: 'inline-block',
+                        wordBreak: 'break-word',
+                        lineHeight: 1.35
+                      }}
+                    >
+                      {res.company_name}
+                    </span>
+                    <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
+                      {res.status}
+                    </span>
+                  </div>
+
+                  {/* Header Row 2: Database Icon & Database Name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
                     <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
-                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.92rem', wordBreak: 'break-word' }}>
-                      {res.company_name} <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>({res.database})</span>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                      {res.database}
                     </strong>
                   </div>
-                  <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
-                    {res.status}
-                  </span>
                 </div>
+
+                {/* Card Body: Metric Rows */}
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Tabel Baru Dibuat:</span>
                     <strong style={{ color: res.created_tables > 0 ? '#10b981' : 'var(--text-primary)' }}>{res.created_tables}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Tabel Diperiksa/Diperbarui:</span>
                     <strong style={{ color: 'var(--text-primary)' }}>{res.updated_tables}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-card-inner)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Kolom Baru Ditambahkan:</span>
                     <strong style={{ color: res.altered_columns > 0 ? '#0284c7' : 'var(--text-primary)' }}>{res.altered_columns}</strong>
                   </div>

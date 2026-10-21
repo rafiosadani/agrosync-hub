@@ -102,6 +102,10 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   const [batchCredTargetIds, setBatchCredTargetIds] = useState([]);
   const [isSavingBatchCred, setIsSavingBatchCred] = useState(false);
   const [revealedBatchPasswords, setRevealedBatchPasswords] = useState({});
+  const [testingBatchPusat, setTestingBatchPusat] = useState(false);
+  const [testingBatchLokal, setTestingBatchLokal] = useState(false);
+  const [resultBatchPusat, setResultBatchPusat] = useState(null);
+  const [resultBatchLokal, setResultBatchLokal] = useState(null);
 
   // Dynamic unique company names from data list
   const uniqueCompanies = Array.from(new Set((configs || []).map(c => c.CompanyName).filter(Boolean))).sort();
@@ -155,7 +159,71 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
       PasswordLokal: ''
     });
     setRevealedBatchPasswords({});
+    setResultBatchPusat(null);
+    setResultBatchLokal(null);
     setIsBatchCredModalOpen(true);
+  };
+
+  const handleTestBatchPusat = async () => {
+    const firstTargetNode = (configs || []).find(c => batchCredTargetIds.includes(c.id));
+    const server = (batchCredData.ServerPusat || firstTargetNode?.ServerPusat || '').trim();
+    const user = (batchCredData.UserPusat || firstTargetNode?.UserPusat || '').trim();
+    const password = batchCredData.PasswordPusat || '';
+    const testDb = firstTargetNode?.DatabasePusat || 'master';
+    const nodeId = firstTargetNode?.id;
+
+    if (!server || !user) {
+      toast.warning('Input Kurang Lengkap', 'Masukkan Host Server dan User Login Pusat terlebih dahulu.');
+      return;
+    }
+
+    setTestingBatchPusat(true);
+    setResultBatchPusat(null);
+    try {
+      const res = await api.testConnection(server, testDb, user, password, nodeId, 'pusat');
+      setResultBatchPusat(res);
+      if (res.success) {
+        toast.success('Koneksi Pusat Valid', `Ping: ${res.latency_ms} ms`);
+      } else {
+        toast.error('Koneksi Pusat Gagal', res.message);
+      }
+    } catch (err) {
+      setResultBatchPusat({ success: false, message: err.message, latency_ms: 0 });
+      toast.error('Koneksi Pusat Gagal', err.message);
+    } finally {
+      setTestingBatchPusat(false);
+    }
+  };
+
+  const handleTestBatchLokal = async () => {
+    const firstTargetNode = (configs || []).find(c => batchCredTargetIds.includes(c.id));
+    const server = (batchCredData.ServerLokal || firstTargetNode?.ServerLokal || '').trim();
+    const user = (batchCredData.UserLokal || firstTargetNode?.UserLokal || '').trim();
+    const password = batchCredData.PasswordLokal || '';
+    const testDb = firstTargetNode?.DatabaseLokal || 'master';
+    const nodeId = firstTargetNode?.id;
+
+    if (!server || !user) {
+      toast.warning('Input Kurang Lengkap', 'Masukkan Host Server dan User Login Lokal terlebih dahulu.');
+      return;
+    }
+
+    setTestingBatchLokal(true);
+    setResultBatchLokal(null);
+    try {
+      const res = await api.testConnection(server, testDb, user, password, nodeId, 'lokal');
+      setResultBatchLokal(res);
+      if (res.success) {
+        toast.success('Koneksi Lokal Valid', `Ping: ${res.latency_ms} ms`);
+      } else {
+        toast.error('Koneksi Lokal Gagal', res.message);
+      }
+    } catch (err) {
+      setResultBatchLokal({ success: false, message: err.message, latency_ms: 0 });
+      toast.error('Koneksi Lokal Gagal', err.message);
+    } finally {
+      setTestingBatchLokal(false);
+    }
   };
 
   const handleSaveBatchCredentials = async (e) => {
@@ -223,6 +291,16 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   };
 
   const handleSelectHostFromScanner = (chosenAddress, role) => {
+    if (isBatchCredModalOpen) {
+      if (role === 'pusat') {
+        setBatchCredData(prev => ({ ...prev, ServerPusat: chosenAddress }));
+        toast.success('Host Pusat Diterapkan', `Server: ${chosenAddress}`);
+      } else {
+        setBatchCredData(prev => ({ ...prev, ServerLokal: chosenAddress }));
+        toast.success('Host Lokal Diterapkan', `Server: ${chosenAddress}`);
+      }
+      return;
+    }
     if (role === 'pusat') {
       handleFieldChange('ServerPusat', chosenAddress);
     } else {
@@ -552,7 +630,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     const server = isPusat ? formData.ServerPusat : formData.ServerLokal;
     const database = isPusat ? formData.DatabasePusat : formData.DatabaseLokal;
     const user = isPusat ? formData.UserPusat : formData.UserLokal;
-    const password = isPusat ? (formData.PasswordPusat || '••••••••') : (formData.PasswordLokal || '••••••••');
+    const password = isPusat ? (formData.PasswordPusat || '') : (formData.PasswordLokal || '');
 
     if (!database) {
       toast.warning('Validasi Diperlukan', 'Nama database tidak boleh kosong!');
@@ -563,7 +641,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     else setCreatingDbLokal(true);
 
     try {
-      const res = await api.createDatabase(server, database, user, password);
+      const res = await api.createDatabase(
+        server, 
+        database, 
+        user, 
+        password, 
+        editingNodeId, 
+        isPusat ? 'pusat' : 'lokal'
+      );
       toast.success('Database Berhasil Dibuat', res.message);
       if (isPusat) {
         await handleTestPusat();
@@ -702,15 +787,15 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
     try {
       if (editingNodeId !== null) {
         // Update single node
-        const payload = { ...formData };
+        const payload = { ...formData, CompanyName: (formData.CompanyName || '').trim() };
         if (!payload.PasswordPusat) delete payload.PasswordPusat;
         if (!payload.PasswordLokal) delete payload.PasswordLokal;
         await api.updateConfig(editingNodeId, payload);
-        toast.success('Node Berhasil Diperbarui', `Konfigurasi ${formData.CompanyName} (${formData.DatabasePusat}) telah disimpan.`);
+        toast.success('Node Berhasil Diperbarui', `Konfigurasi ${payload.CompanyName} (${formData.DatabasePusat}) telah disimpan.`);
       } else if (creationMode === 'batch') {
         // Batch create
         const batchPayload = selectedDatabasesPusat.map(dbPusat => ({
-          CompanyName: formData.CompanyName,
+          CompanyName: (formData.CompanyName || '').trim(),
           ServerPusat: formData.ServerPusat,
           DatabasePusat: dbPusat,
           UserPusat: formData.UserPusat,
@@ -724,8 +809,9 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         toast.success('Batch Node Berhasil Dibuat', res.message || `${batchPayload.length} database node berhasil ditambahkan.`);
       } else {
         // Single create
-        await api.createConfig(formData);
-        toast.success('Node Baru Ditambahkan', `Node ${formData.CompanyName} (${formData.DatabasePusat}) berhasil disimpan.`);
+        const singlePayload = { ...formData, CompanyName: (formData.CompanyName || '').trim() };
+        await api.createConfig(singlePayload);
+        toast.success('Node Baru Ditambahkan', `Node ${singlePayload.CompanyName} (${formData.DatabasePusat}) berhasil disimpan.`);
       }
       setIsModalOpen(false);
       await onRefreshConfigs?.();
@@ -1078,8 +1164,8 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               className={`form-input ${formErrors.CompanyName ? 'input-error' : ''}`}
               autoComplete="on"
               value={formData.CompanyName}
-              onChange={(e) => handleFieldChange('CompanyName', e.target.value.toUpperCase())}
-              placeholder="Contoh: API, AGC, TTM"
+              onChange={(e) => handleFieldChange('CompanyName', e.target.value)}
+              placeholder="Contoh: PT Agri Prime Internasional, TTM, AGC"
             />
             {formErrors.CompanyName && (
               <div className="form-field-error">
@@ -2194,10 +2280,62 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               borderRadius: 'var(--radius-md)',
               padding: '14px'
             }}>
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#38bdf8', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Server size={14} />
-                <span>Pembaruan Server Pusat</span>
-              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#38bdf8', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Server size={14} />
+                  <span>Pembaruan Server Pusat</span>
+                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenScannerFor('pusat')}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#0284c7',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Pindai SQL Server di WiFi/LAN untuk mengisi Server Pusat"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai Subnet</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                    onClick={handleTestBatchPusat}
+                    disabled={testingBatchPusat}
+                    title="Uji koneksi ke instance Server Pusat"
+                  >
+                    <RefreshCw size={12} className={testingBatchPusat ? 'animate-spin' : ''} />
+                    <span>{testingBatchPusat ? 'Menguji...' : 'Uji Koneksi'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {resultBatchPusat && (
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.74rem',
+                  marginBottom: '10px',
+                  background: resultBatchPusat.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                  color: resultBatchPusat.success ? '#34d399' : '#fb7185',
+                  border: `1px solid ${resultBatchPusat.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`
+                }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {resultBatchPusat.success ? `✅ Berhasil (${resultBatchPusat.latency_ms} ms)` : `❌ ${resultBatchPusat.message}`}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
@@ -2249,10 +2387,62 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               borderRadius: 'var(--radius-md)',
               padding: '14px'
             }}>
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#10b981', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Server size={14} />
-                <span>Pembaruan Server Lokal</span>
-              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#10b981', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Server size={14} />
+                  <span>Pembaruan Server Lokal</span>
+                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenScannerFor('lokal')}
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#10b981',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Pindai SQL Server di WiFi/LAN untuk mengisi Server Lokal"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai Subnet</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                    onClick={handleTestBatchLokal}
+                    disabled={testingBatchLokal}
+                    title="Uji koneksi ke instance Server Lokal"
+                  >
+                    <RefreshCw size={12} className={testingBatchLokal ? 'animate-spin' : ''} />
+                    <span>{testingBatchLokal ? 'Menguji...' : 'Uji Koneksi'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {resultBatchLokal && (
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.74rem',
+                  marginBottom: '10px',
+                  background: resultBatchLokal.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                  color: resultBatchLokal.success ? '#34d399' : '#fb7185',
+                  border: `1px solid ${resultBatchLokal.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`
+                }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {resultBatchLokal.success ? `✅ Berhasil (${resultBatchLokal.latency_ms} ms)` : `❌ ${resultBatchLokal.message}`}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
@@ -2264,6 +2454,49 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                     value={batchCredData.ServerLokal}
                     onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerLokal: e.target.value }))}
                   />
+                  {networkInfo && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Bantuan Host:</span>
+                      <button
+                        type="button"
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#10b981',
+                          fontSize: '0.72rem',
+                          padding: '2px 8px',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_ip},1435` }));
+                          toast.success('Host Lokal Diterapkan', `IP: ${networkInfo.local_ip},1435`);
+                        }}
+                        title="Gunakan IP LAN mesin ini"
+                      >
+                        IP: {networkInfo.local_ip},1435
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#0284c7',
+                          fontSize: '0.72rem',
+                          padding: '2px 8px',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_hostname},1435` }));
+                          toast.success('Host Lokal Diterapkan', `Hostname: ${networkInfo.local_hostname},1435`);
+                        }}
+                        title="Gunakan hostname lokal mesin ini"
+                      >
+                        Hostname: {networkInfo.local_hostname?.split('.')[0] || 'Lokal'}.local
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login Lokal</label>
@@ -2327,7 +2560,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         networkInfo={networkInfo}
         configs={configs}
         onNodeUpdated={onRefreshConfigs}
-        onSelectHost={isModalOpen ? handleSelectHostFromScanner : null}
+        onSelectHost={(isModalOpen || isBatchCredModalOpen) ? handleSelectHostFromScanner : null}
         targetRole={scannerTargetRole}
       />
     </div>

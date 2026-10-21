@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 import pyodbc
 from ..config import CURRENT_ODBC_DRIVER, PREFERRED_ODBC_DRIVERS, STATE_FILE_PATH
 from .config_manager import ConfigManager
+from .connection_tester import create_sql_database
 from ..models.metrics_models import ActivityLogItem
 
 def handle_datetimeoffset(value):
@@ -377,25 +378,19 @@ class EnterpriseSyncEngine:
                 return True
             return False
 
-    def remove_metrics_for_config(self, db_p: str, srv_l: str = None):
-        """Menghapus entri metrik saat sebuah konfigurasi database node dihapus dari config."""
+    def reconcile_with_configs(self):
+        """
+        Sinkronisasi 1:1 antara sync_config.json dan tracking metrics_by_company:
+        1. Mendeteksi perubahan nama perusahaan (migrasi key metrik, pertahankan riwayat transaksi).
+        2. Mendeteksi perubahan nama database lokal/pusat (reset metrik ke 0 untuk target baru, perbarui nama DB).
+        3. Menghapus otomatis kartu node yang sudah tidak terdaftar di sync_config.json (bebas ghost cards).
+        """
         with self._lock:
-            to_del = []
-            for k, val in list(self.metrics_by_company.items()):
-                if val.get("database_pusat") == db_p:
-                    if not srv_l or val.get("server_lokal") == srv_l:
-                        to_del.append(k)
-            for k in to_del:
-                del self.metrics_by_company[k]
-            if to_del:
-                self._save_state()
-
-    def get_status(self) -> Dict[str, Any]:
-        with self._lock:
-            # Pastikan setiap database node dari sync_config.json memiliki slot metrik awal
             try:
                 raw_configs = ConfigManager.get_all_raw()
                 active_keys = set()
+                state_changed = False
+
                 for cfg in raw_configs:
                     c_name = cfg.get("CompanyName", "UNKNOWN")
                     db_p = cfg.get("DatabasePusat", "")
@@ -405,21 +400,65 @@ class EnterpriseSyncEngine:
                     key = f"{c_name} - {db_p} ({srv_l})" if srv_l else f"{c_name} - {db_p}"
                     active_keys.add(key)
 
-                    if key not in self.metrics_by_company:
-                        # Cek apakah ada old metric untuk database_pusat ini yang kuncinya lama
-                        # (Deteksi perubahan nama CompanyName atau perubahan IP/hostname server lokal)
+                    if key in self.metrics_by_company:
+                        item = self.metrics_by_company[key]
+                        old_db_l = item.get("database_lokal")
+                        old_db_p = item.get("database_pusat")
+
+                        # Jika target database lokal berubah (misal typo TMdb002 -> TTMdb002):
+                        if old_db_l and old_db_l != db_l:
+                            ins = item.get("total_inserts", 0)
+                            upd = item.get("total_updates", 0)
+                            dels = item.get("total_deletes", 0)
+                            self.total_inserts = max(0, self.total_inserts - ins)
+                            self.total_updates = max(0, self.total_updates - upd)
+                            self.total_deletes = max(0, self.total_deletes - dels)
+
+                            item["total_inserts"] = 0
+                            item["total_updates"] = 0
+                            item["total_deletes"] = 0
+                            item["total_tables_synced"] = 0
+                            item["last_sync_time"] = None
+                            item["status"] = "STANDBY"
+                            self.add_log("INFO", f"Target database lokal untuk [{key}] diubah dari [{old_db_l}] ke [{db_l}]. Metrik direset ke 0.")
+                            state_changed = True
+
+                        item["company_name"] = c_name
+                        item["database_pusat"] = db_p
+                        item["database_lokal"] = db_l
+                        item["server_pusat"] = srv_p
+                        item["server_lokal"] = srv_l
+                        item["is_active"] = True
+                    else:
+                        # Cek apakah ada old metric untuk database_pusat & server_lokal ini
+                        # (kasus perubahan CompanyName, misal PT TALENTA TIGA -> PT TALENTA TIGA MUDA)
                         migrated_old_key = None
                         all_active_possible = [
-                            f"{c.get('CompanyName')} - {c.get('DatabasePusat')} ({c.get('ServerLokal')})" 
+                            f"{c.get('CompanyName')} - {c.get('DatabasePusat')} ({c.get('ServerLokal')})"
                             for c in raw_configs
                         ]
                         for old_k, old_val in list(self.metrics_by_company.items()):
-                            if old_k not in all_active_possible and old_val.get("database_pusat") == db_p:
+                            if old_k not in all_active_possible and old_val.get("database_pusat") == db_p and old_val.get("server_lokal") == srv_l:
                                 migrated_old_key = old_k
                                 break
 
                         if migrated_old_key:
                             old_val = self.metrics_by_company.pop(migrated_old_key)
+                            old_db_l = old_val.get("database_lokal")
+                            if old_db_l and old_db_l != db_l:
+                                ins = old_val.get("total_inserts", 0)
+                                upd = old_val.get("total_updates", 0)
+                                dels = old_val.get("total_deletes", 0)
+                                self.total_inserts = max(0, self.total_inserts - ins)
+                                self.total_updates = max(0, self.total_updates - upd)
+                                self.total_deletes = max(0, self.total_deletes - dels)
+                                old_val["total_inserts"] = 0
+                                old_val["total_updates"] = 0
+                                old_val["total_deletes"] = 0
+                                old_val["total_tables_synced"] = 0
+                                old_val["last_sync_time"] = None
+                                old_val["status"] = "STANDBY"
+
                             self.metrics_by_company[key] = {
                                 **old_val,
                                 "node_key": key,
@@ -430,7 +469,7 @@ class EnterpriseSyncEngine:
                                 "server_lokal": srv_l,
                                 "is_active": True
                             }
-                            self._save_state()
+                            state_changed = True
                         else:
                             self.metrics_by_company[key] = {
                                 "node_key": key,
@@ -447,46 +486,29 @@ class EnterpriseSyncEngine:
                                 "status": "STANDBY",
                                 "is_active": True
                             }
-                    else:
-                        self.metrics_by_company[key]["company_name"] = c_name
-                        self.metrics_by_company[key]["server_pusat"] = srv_p
-                        self.metrics_by_company[key]["server_lokal"] = srv_l
-                        self.metrics_by_company[key]["is_active"] = True
+                            state_changed = True
 
-                        # Jika node aktif ini masih 0 transaksi, tetapi ada node lama untuk DB ini yang memiliki riwayat:
-                        if self.metrics_by_company[key].get("total_inserts", 0) == 0:
-                            for old_k, old_val in list(self.metrics_by_company.items()):
-                                if (old_k != key and old_k not in active_keys and 
-                                    old_val.get("database_pusat") == db_p and 
-                                    (old_val.get("total_inserts", 0) > 0 or old_val.get("total_updates", 0) > 0)):
-                                    self.metrics_by_company[key]["total_inserts"] = old_val.get("total_inserts", 0)
-                                    self.metrics_by_company[key]["total_updates"] = old_val.get("total_updates", 0)
-                                    self.metrics_by_company[key]["total_deletes"] = old_val.get("total_deletes", 0)
-                                    self.metrics_by_company[key]["total_tables_synced"] = old_val.get("total_tables_synced", 0)
-                                    self.metrics_by_company[key]["last_sync_time"] = old_val.get("last_sync_time")
-                                    self.metrics_by_company[key]["status"] = old_val.get("status", "COMPLETED")
-                                    del self.metrics_by_company[old_k]
-                                    self._save_state()
-                                    break
+                # Hapus kartu yang sudah tidak ada di active_keys (prune ghost/deleted cards)
+                to_delete = [k for k in list(self.metrics_by_company.keys()) if k not in active_keys]
+                for k in to_delete:
+                    old_val = self.metrics_by_company[k]
+                    ins = old_val.get("total_inserts", 0)
+                    upd = old_val.get("total_updates", 0)
+                    dels = old_val.get("total_deletes", 0)
+                    self.total_inserts = max(0, self.total_inserts - ins)
+                    self.total_updates = max(0, self.total_updates - upd)
+                    self.total_deletes = max(0, self.total_deletes - dels)
+                    del self.metrics_by_company[k]
+                    state_changed = True
 
-                # Bersihkan kartu yang sudah tidak ada di active_keys:
-                # 1. Jika raw_configs kosong (seluruh node dihapus), hapus semua kartu metrik agar kembali bersih 0
-                # 2. Jika ada kartu non-aktif dengan 0 transaksi, hapus otomatis agar tidak jadi kartu hantu/ghost card
-                for k in list(self.metrics_by_company.keys()):
-                    if k not in active_keys:
-                        if len(raw_configs) == 0:
-                            del self.metrics_by_company[k]
-                            self._save_state()
-                        else:
-                            val = self.metrics_by_company[k]
-                            total_ops = val.get("total_inserts", 0) + val.get("total_updates", 0) + val.get("total_deletes", 0)
-                            if total_ops == 0:
-                                del self.metrics_by_company[k]
-                                self._save_state()
-                            else:
-                                self.metrics_by_company[k]["is_active"] = False
-            except Exception:
-                pass
+                if state_changed:
+                    self._save_state()
+            except Exception as e:
+                print(f"⚠️ [SyncEngine] reconcile_with_configs error: {e}")
+
+    def get_status(self) -> Dict[str, Any]:
+        self.reconcile_with_configs()
+        with self._lock:
 
             return {
                 "state": self.state,
@@ -682,6 +704,9 @@ class EnterpriseSyncEngine:
                     "status": "SYNCING"
                 }
             self.metrics_by_company[node_key]["status"] = "SYNCING"
+            self.metrics_by_company[node_key]["company_name"] = comp_name
+            self.metrics_by_company[node_key]["database_pusat"] = db_source
+            self.metrics_by_company[node_key]["database_lokal"] = db_target
             self.metrics_by_company[node_key]["server_pusat"] = server_source
             self.metrics_by_company[node_key]["server_lokal"] = server_target
 
@@ -697,7 +722,22 @@ class EnterpriseSyncEngine:
         try:
             conn_source = pyodbc.connect(conn_source_str, timeout=5)
             conn_source.add_output_converter(-155, handle_datetimeoffset)
-            conn_target = pyodbc.connect(conn_target_str, timeout=5)
+
+            try:
+                conn_target = pyodbc.connect(conn_target_str, timeout=5)
+            except Exception as conn_tgt_err:
+                err_str = str(conn_tgt_err)
+                if ("4060" in err_str or "Cannot open database" in err_str or "does not exist" in err_str) and server_target and db_target:
+                    self.add_log("INFO", f"[{comp_name}] 🛠️ Target database [{db_target}] belum ada di {server_target}. Membuat database otomatis...", comp_name)
+                    ok_created, msg_created = create_sql_database(server_target, db_target, user_target, pwd_target)
+                    if ok_created:
+                        self.add_log("SUCCESS", f"[{comp_name}] ✅ Database [{db_target}] berhasil dibuat otomatis di server target.", comp_name)
+                        conn_target = pyodbc.connect(conn_target_str, timeout=5)
+                    else:
+                        raise conn_tgt_err
+                else:
+                    raise conn_tgt_err
+
             conn_target.add_output_converter(-155, handle_datetimeoffset)
 
             cursor_source = conn_source.cursor()

@@ -14,4 +14,4 @@ if __name__ == "__main__":
     print("📡 Listening on: http://0.0.0.0:8000 (Local & LAN)")
     print("📚 Swagger Docs: http://localhost:8000/docs")
     print("==================================================")
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True, reload_dirs=[os.path.join(BASE_DIR, "backend")])

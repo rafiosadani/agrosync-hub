@@ -85,14 +85,10 @@ export default function Overview({
       })) || []);
 
   const displayNodes = useMemo(() => {
-    const list = [...rawNodes];
+    // Hanya tampilkan node aktif sehingga jumlah kartu selalu 1:1 dengan node di database
+    const list = [...rawNodes].filter(n => n.is_active !== false);
     return list.sort((a, b) => {
-      // 1. Prioritaskan Node Aktif di atas Node Non-Aktif
-      const aActive = a.is_active !== false;
-      const bActive = b.is_active !== false;
-      if (aActive !== bActive) return aActive ? -1 : 1;
-
-      // 2. Berdasarkan pilihan sort
+      // 1. Berdasarkan pilihan sort
       if (nodeSortBy === 'transactions') {
         const aTotal = (a.total_inserts || 0) + (a.total_updates || 0) + (a.total_deletes || 0);
         const bTotal = (b.total_inserts || 0) + (b.total_updates || 0) + (b.total_deletes || 0);

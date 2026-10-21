@@ -89,11 +89,18 @@ export const api = {
     return res.json();
   },
 
-  async createDatabase(server, database, user, password) {
+  async createDatabase(server, database, user, password, nodeId = null, role = 'lokal') {
     const res = await fetch(`${API_BASE}/api/configs/create-database`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ server, database, user, password })
+      body: JSON.stringify({ 
+        server, 
+        database, 
+        user, 
+        password,
+        node_id: nodeId,
+        role: role
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
