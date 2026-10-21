@@ -1,16 +1,5 @@
 [
   {
-    "CompanyName": "PT Talenta Tiga Muda",
-    "ServerPusat": "192.168.2.99,1433",
-    "DatabasePusat": "TTMdb002",
-    "UserPusat": "sa",
-    "PasswordPusat": "Xk#9mP$2vL!q8Z",
-    "ServerLokal": "192.168.2.99,1435",
-    "DatabaseLokal": "TTMdb002",
-    "UserLokal": "sa",
-    "PasswordLokal": "Xy#9pL$2vN!k4W"
-  },
-  {
     "CompanyName": "PT Agri Prime Internasional",
     "ServerPusat": "192.168.2.99,1433",
     "DatabasePusat": "APIdb001",
@@ -33,13 +22,68 @@
     "PasswordLokal": "Xy#9pL$2vN!k4W"
   },
   {
-    "CompanyName": "AGC",
+    "CompanyName": "PT Agri Prime Internasional",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "APIdb003",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "APIdb003",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "PT Agrochem Mega Globalindo",
     "ServerPusat": "192.168.2.99,1433",
     "DatabasePusat": "AGCdb001",
     "UserPusat": "sa",
     "PasswordPusat": "Xk#9mP$2vL!q8Z",
     "ServerLokal": "192.168.2.99,1435",
     "DatabaseLokal": "AGCdb001",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "PT Agrochem Mega Globalindo",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "AGCdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "AGCdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "PT Agrochem Mega Globalindo",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "AGCdb003",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "AGCdb003",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "PT Agrofarm Nusa Raya",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "AGFdb002",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "AGFdb002",
+    "UserLokal": "sa",
+    "PasswordLokal": "Xy#9pL$2vN!k4W"
+  },
+  {
+    "CompanyName": "PT Agrofarm Nusa Raya",
+    "ServerPusat": "192.168.2.99,1433",
+    "DatabasePusat": "AGFdb003",
+    "UserPusat": "sa",
+    "PasswordPusat": "Xk#9mP$2vL!q8Z",
+    "ServerLokal": "192.168.2.99,1435",
+    "DatabaseLokal": "AGFdb003",
     "UserLokal": "sa",
     "PasswordLokal": "Xy#9pL$2vN!k4W"
   }

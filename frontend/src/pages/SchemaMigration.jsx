@@ -148,11 +148,22 @@ export default function SchemaMigration() {
       {/* Results View */}
       {migrationResults && (
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               Hasil Eksekusi Migrasi Skema
             </h3>
-            <span className="badge badge-success">Selesai Berhasil</span>
+            {(() => {
+              const hasErrors = migrationResults.some(r => r.status !== 'SUCCESS');
+              const successCount = migrationResults.filter(r => r.status === 'SUCCESS').length;
+              if (hasErrors) {
+                return (
+                  <span className="badge badge-warning" style={{ fontSize: '0.78rem' }}>
+                    {successCount}/{migrationResults.length} Node Berhasil (Perlu Perhatian)
+                  </span>
+                );
+              }
+              return <span className="badge badge-success" style={{ fontSize: '0.78rem' }}>Selesai Berhasil (100%)</span>;
+            })()}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
@@ -161,7 +172,7 @@ export default function SchemaMigration() {
                 key={i}
                 style={{
                   background: 'var(--bg-card)',
-                  border: '1px solid var(--border-subtle)',
+                  border: res.status === 'SUCCESS' ? '1px solid var(--border-subtle)' : '1px solid rgba(239, 68, 68, 0.4)',
                   borderRadius: 'var(--radius-md)',
                   padding: '18px',
                   boxShadow: 'var(--shadow-card, var(--shadow-sm))',
@@ -171,8 +182,8 @@ export default function SchemaMigration() {
                 }}
               >
                 <div>
-                  {/* Header Row 1: Company Badge (Left) & Status Badge (Right) */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                  {/* Header Row 1: Full Company Name on Dedicated Single Line */}
+                  <div style={{ marginBottom: '8px' }}>
                     <span
                       title={res.company_name}
                       style={{
@@ -185,23 +196,28 @@ export default function SchemaMigration() {
                         letterSpacing: '0.02em',
                         border: '1px solid rgba(16, 185, 129, 0.28)',
                         display: 'inline-block',
-                        wordBreak: 'break-word',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
                         lineHeight: 1.35
                       }}
                     >
                       {res.company_name}
                     </span>
-                    <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`} style={{ flexShrink: 0 }}>
-                      {res.status}
-                    </span>
                   </div>
 
-                  {/* Header Row 2: Database Icon & Database Name */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-                    <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
-                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
-                      {res.database}
-                    </strong>
+                  {/* Header Row 2: Database Name (Left) & Status Badge (Right Inline) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                      <Database size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {res.database}
+                      </strong>
+                    </div>
+                    <span className={`badge ${res.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`} style={{ flexShrink: 0, fontSize: '0.72rem' }}>
+                      {res.status}
+                    </span>
                   </div>
                 </div>
 
@@ -219,6 +235,24 @@ export default function SchemaMigration() {
                     <span>Kolom Baru Ditambahkan:</span>
                     <strong style={{ color: res.altered_columns > 0 ? '#0284c7' : 'var(--text-primary)' }}>{res.altered_columns}</strong>
                   </div>
+
+                  {/* Detail Error Jika Status Bukan SUCCESS */}
+                  {res.status !== 'SUCCESS' && res.errors && res.errors.length > 0 && (
+                    <div style={{
+                      marginTop: '4px',
+                      padding: '8px 10px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#f87171',
+                      fontSize: '0.73rem',
+                      lineHeight: 1.4,
+                      wordBreak: 'break-word'
+                    }}>
+                      <div style={{ fontWeight: 700, marginBottom: '2px' }}>Penyebab Kendala:</div>
+                      {res.errors[0]}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

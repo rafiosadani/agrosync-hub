@@ -85,6 +85,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   const [showModalPassLokal, setShowModalPassLokal] = useState(false);
   const [scannerTargetRole, setScannerTargetRole] = useState('pusat');
   const [showLocalHostMenu, setShowLocalHostMenu] = useState(false);
+  const [showBatchLocalHostMenu, setShowBatchLocalHostMenu] = useState(false);
 
   // Live Search, Filter Perusahaan, & Batch Credentials States
   const [searchQuery, setSearchQuery] = useState('');
@@ -279,11 +280,14 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
   }, []);
 
   useEffect(() => {
-    if (!showLocalHostMenu) return;
-    const handleClickOutside = () => setShowLocalHostMenu(false);
+    if (!showLocalHostMenu && !showBatchLocalHostMenu) return;
+    const handleClickOutside = () => {
+      setShowLocalHostMenu(false);
+      setShowBatchLocalHostMenu(false);
+    };
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
-  }, [showLocalHostMenu]);
+  }, [showLocalHostMenu, showBatchLocalHostMenu]);
 
   const handleOpenScannerFor = (role = 'pusat') => {
     setScannerTargetRole(role);
@@ -642,11 +646,11 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
 
     try {
       const res = await api.createDatabase(
-        server, 
-        database, 
-        user, 
-        password, 
-        editingNodeId, 
+        server,
+        database,
+        user,
+        password,
+        editingNodeId,
         isPusat ? 'pusat' : 'lokal'
       );
       toast.success('Database Berhasil Dibuat', res.message);
@@ -1027,7 +1031,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                         />
                       </td>
                       <td>
-                        <span 
+                        <span
                           title={node.CompanyName}
                           style={{
                             background: 'rgba(16, 185, 129, 0.12)',
@@ -1123,7 +1127,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         title={editingNodeId !== null ? `Edit Node #${editingNodeId} (${formData.CompanyName})` : "Tambah Node Database Baru"}
         maxWidth="1000px"
       >
-        <form onSubmit={handleSave} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Mode Switcher (Hanya saat tambah node baru) */}
           {editingNodeId === null && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '10px' }}>
@@ -2113,8 +2117,9 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               Batal
             </button>
             <button
-              type="submit"
+              type="button"
               className="btn btn-primary"
+              onClick={handleSave}
               disabled={isSaving || (creationMode === 'batch' && selectedDatabasesPusat.length === 0)}
             >
               {isSaving ? (
@@ -2131,7 +2136,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               )}
             </button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* Modal Batch Update Kredensial & Server */}
@@ -2139,9 +2144,9 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
         isOpen={isBatchCredModalOpen}
         onClose={() => setIsBatchCredModalOpen(false)}
         title={`Batch Update Kredensial & Server (${batchCredTargetIds.length} Node)`}
-        maxWidth="750px"
+        maxWidth="960px"
       >
-        <form onSubmit={handleSaveBatchCredentials} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Target Nodes Selector */}
           <div style={{
             background: 'var(--bg-card-inner)',
@@ -2149,7 +2154,8 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
             borderRadius: 'var(--radius-md)',
             padding: '14px 16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            {/* Header / Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Target Database Node ({batchCredTargetIds.length} Terpilih):
               </span>
@@ -2186,8 +2192,13 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               </div>
             </div>
 
+            {/* Sub-label: Quick Group Select */}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+              Pilih Cepat Berdasarkan Perusahaan (Grup):
+            </div>
+
             {/* Quick Filter Perusahaan Pills */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {uniqueCompanies.map(comp => {
                 const compNodeIds = (configs || []).filter(c => c.CompanyName === comp).map(c => c.id);
                 const isAllSelected = compNodeIds.length > 0 && compNodeIds.every(id => batchCredTargetIds.includes(id));
@@ -2206,43 +2217,64 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                       background: isAllSelected ? 'rgba(16, 185, 129, 0.18)' : 'var(--bg-card)',
                       border: isAllSelected ? '1px solid #10b981' : '1px solid var(--border-subtle)',
                       color: isAllSelected ? '#10b981' : 'var(--text-secondary)',
-                      padding: '3px 8px',
+                      padding: '4px 10px',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.74rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    {isAllSelected ? '✓ ' : '+ '} {comp} ({compNodeIds.length})
+                    <span>{isAllSelected ? '✓' : '+'}</span>
+                    <span>{comp}</span>
+                    <span style={{ opacity: 0.8, fontSize: '0.7rem' }}>({compNodeIds.length})</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* List of Target Node Pills */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '4px 0' }}>
+            {/* Visual Divider between Group Pills and Individual Checkboxes */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              margin: '12px 0 8px 0'
+            }}>
+              <div style={{ flex: 1, borderTop: '1px dashed var(--border-subtle)' }} />
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Atau Pilih Database Node Spesifik ({batchCredTargetIds.length} Terpilih)
+              </span>
+              <div style={{ flex: 1, borderTop: '1px dashed var(--border-subtle)' }} />
+            </div>
+
+            {/* List of Target Node Checkboxes */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '120px', overflowY: 'auto', padding: '4px 0' }}>
               {(configs || []).map(node => {
                 const isChecked = batchCredTargetIds.includes(node.id);
                 return (
                   <span
                     key={node.id}
                     onClick={() => {
-                      setBatchCredTargetIds(prev => 
+                      setBatchCredTargetIds(prev =>
                         isChecked ? prev.filter(id => id !== node.id) : [...prev, node.id]
                       );
                     }}
                     style={{
                       cursor: 'pointer',
-                      background: isChecked ? 'rgba(2, 132, 199, 0.12)' : 'var(--bg-card)',
-                      border: isChecked ? '1px solid rgba(2, 132, 199, 0.35)' : '1px solid var(--border-subtle)',
+                      background: isChecked ? 'rgba(2, 132, 199, 0.14)' : 'var(--bg-card)',
+                      border: isChecked ? '1px solid rgba(2, 132, 199, 0.45)' : '1px solid var(--border-subtle)',
                       color: isChecked ? '#0284c7' : 'var(--text-muted)',
-                      padding: '3px 8px',
+                      padding: '4px 10px',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.74rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{isChecked ? '☑' : '☐'}</span>
@@ -2272,53 +2304,30 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
           </div>
 
           {/* Form Fields: Two Column Grid (Pusat & Lokal) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
             {/* Server Pusat Panel */}
             <div style={{
               background: 'var(--bg-card-inner)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-md)',
-              padding: '14px'
+              padding: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#38bdf8', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* Header: Title Left, Test Koneksi Right */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', minHeight: '32px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Server size={14} />
-                  <span>Pembaruan Server Pusat</span>
-                </h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenScannerFor('pusat')}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.35)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#0284c7',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      padding: '3px 8px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    title="Pindai SQL Server di WiFi/LAN untuk mengisi Server Pusat"
-                  >
-                    <Radar size={12} />
-                    <span>Pindai Subnet</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                    onClick={handleTestBatchPusat}
-                    disabled={testingBatchPusat}
-                    title="Uji koneksi ke instance Server Pusat"
-                  >
-                    <RefreshCw size={12} className={testingBatchPusat ? 'animate-spin' : ''} />
-                    <span>{testingBatchPusat ? 'Menguji...' : 'Uji Koneksi'}</span>
-                  </button>
-                </div>
+                  <span>SERVER PUSAT (SOURCE)</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleTestBatchPusat}
+                  disabled={testingBatchPusat}
+                  title="Uji koneksi ke instance Server Pusat"
+                >
+                  <RefreshCw size={12} className={testingBatchPusat ? 'animate-spin' : ''} />
+                  <span>{testingBatchPusat ? 'Menguji...' : 'Test Koneksi'}</span>
+                </button>
               </div>
 
               {resultBatchPusat && (
@@ -2337,19 +2346,46 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Host & Port Server Pusat</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Contoh: 192.168.2.99,1433"
-                    value={batchCredData.ServerPusat}
-                    onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerPusat: e.target.value }))}
-                  />
+              {/* 1. Host & Port Server Pusat with Pindai Subnet on the right */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label className="form-label" style={{ margin: 0, fontSize: '0.78rem' }}>Host & Port Server Pusat</label>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenScannerFor('pusat')}
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: '#0284c7',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Pindai SQL Server di WiFi/LAN untuk mengisi Server Pusat"
+                  >
+                    <Radar size={12} />
+                    <span>Pindai Subnet</span>
+                  </button>
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login Pusat</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Contoh: 192.168.2.99,1433"
+                  value={batchCredData.ServerPusat}
+                  onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerPusat: e.target.value }))}
+                />
+              </div>
+
+              {/* 2. User Login & Password Pusat (2 Kolom Berdampingan) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login</label>
                   <input
                     type="text"
                     className="form-input"
@@ -2358,19 +2394,20 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                     onChange={(e) => setBatchCredData(prev => ({ ...prev, UserPusat: e.target.value }))}
                   />
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru Pusat</label>
-                  <div style={{ position: 'relative' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       type={revealedBatchPasswords.Pusat ? 'text' : 'password'}
                       className="form-input"
+                      style={{ paddingRight: '36px', width: '100%' }}
                       placeholder="Biarkan kosong jika tidak diubah"
                       value={batchCredData.PasswordPusat}
                       onChange={(e) => setBatchCredData(prev => ({ ...prev, PasswordPusat: e.target.value }))}
                     />
                     <button
                       type="button"
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                      style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                       onClick={() => setRevealedBatchPasswords(prev => ({ ...prev, Pusat: !prev.Pusat }))}
                     >
                       {revealedBatchPasswords.Pusat ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -2385,47 +2422,24 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               background: 'var(--bg-card-inner)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-md)',
-              padding: '14px'
+              padding: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#10b981', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* Header: Title Left, Test Koneksi Right */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', minHeight: '32px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Server size={14} />
-                  <span>Pembaruan Server Lokal</span>
-                </h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenScannerFor('lokal')}
-                    style={{
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      border: '1px solid rgba(16, 185, 129, 0.35)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: '#10b981',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      padding: '3px 8px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    title="Pindai SQL Server di WiFi/LAN untuk mengisi Server Lokal"
-                  >
-                    <Radar size={12} />
-                    <span>Pindai Subnet</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                    onClick={handleTestBatchLokal}
-                    disabled={testingBatchLokal}
-                    title="Uji koneksi ke instance Server Lokal"
-                  >
-                    <RefreshCw size={12} className={testingBatchLokal ? 'animate-spin' : ''} />
-                    <span>{testingBatchLokal ? 'Menguji...' : 'Uji Koneksi'}</span>
-                  </button>
-                </div>
+                  <span>SERVER LOKAL (DESTINATION)</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleTestBatchLokal}
+                  disabled={testingBatchLokal}
+                  title="Uji koneksi ke instance Server Lokal"
+                >
+                  <RefreshCw size={12} className={testingBatchLokal ? 'animate-spin' : ''} />
+                  <span>{testingBatchLokal ? 'Menguji...' : 'Test Koneksi'}</span>
+                </button>
               </div>
 
               {resultBatchLokal && (
@@ -2444,62 +2458,173 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Host & Port Server Lokal</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Contoh: 192.168.2.99,1435"
-                    value={batchCredData.ServerLokal}
-                    onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerLokal: e.target.value }))}
-                  />
+              {/* 1. Host & Port Server Lokal with Host Lokal dropdown on the right */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label className="form-label" style={{ margin: 0, fontSize: '0.78rem' }}>Host & Port Server Lokal</label>
                   {networkInfo && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Bantuan Host:</span>
+                    <div style={{ position: 'relative' }}>
                       <button
                         type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBatchLocalHostMenu(prev => !prev);
+                        }}
                         style={{
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
                           borderRadius: 'var(--radius-sm)',
                           color: '#10b981',
                           fontSize: '0.72rem',
-                          padding: '2px 8px',
-                          cursor: 'pointer'
+                          fontWeight: 600,
+                          padding: '3px 10px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          transition: 'all 0.15s ease'
                         }}
-                        onClick={() => {
-                          setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_ip},1435` }));
-                          toast.success('Host Lokal Diterapkan', `IP: ${networkInfo.local_ip},1435`);
-                        }}
-                        title="Gunakan IP LAN mesin ini"
+                        title="Pilihan cepat host lokal (IP, Hostname, atau Localhost)"
                       >
-                        IP: {networkInfo.local_ip},1435
+                        <Laptop size={12} />
+                        <span>Host Lokal</span>
+                        <ChevronDown size={11} style={{ transform: showBatchLocalHostMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                       </button>
-                      <button
-                        type="button"
-                        style={{
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          border: '1px solid rgba(56, 189, 248, 0.3)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#0284c7',
-                          fontSize: '0.72rem',
-                          padding: '2px 8px',
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => {
-                          setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_hostname},1435` }));
-                          toast.success('Host Lokal Diterapkan', `Hostname: ${networkInfo.local_hostname},1435`);
-                        }}
-                        title="Gunakan hostname lokal mesin ini"
-                      >
-                        Hostname: {networkInfo.local_hostname?.split('.')[0] || 'Lokal'}.local
-                      </button>
+
+                      {showBatchLocalHostMenu && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 'calc(100% + 4px)',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+                            padding: '6px',
+                            zIndex: 100,
+                            width: 'max-content',
+                            minWidth: '260px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', padding: '4px 10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                            Pilih Host Laptop Ini:
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = batchCredData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_ip},${port}` }));
+                              setShowBatchLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `IP: ${networkInfo.local_ip},${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>IP WiFi / LAN:</span>
+                            <span style={{ color: '#10b981', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>{networkInfo.local_ip}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = batchCredData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setBatchCredData(prev => ({ ...prev, ServerLokal: `${networkInfo.local_hostname},${port}` }));
+                              setShowBatchLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `Hostname: ${networkInfo.local_hostname},${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>Hostname mDNS:</span>
+                            <span style={{ color: '#0284c7', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>{networkInfo.local_hostname?.split('.')[0] || 'Lokal'}.local</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = batchCredData.ServerLokal || '';
+                              const port = current.includes(',') ? current.split(',')[1] : (current.includes(':') ? current.split(':')[1] : '1433');
+                              setBatchCredData(prev => ({ ...prev, ServerLokal: `localhost,${port}` }));
+                              setShowBatchLocalHostMenu(false);
+                              toast.success('Host Lokal Diterapkan', `localhost,${port}`);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '20px',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.74rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-subtle)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ whiteSpace: 'nowrap' }}>Localhost Loopback:</span>
+                            <span style={{ color: '#a855f7', fontFamily: 'monospace', fontWeight: 600, whiteSpace: 'nowrap' }}>127.0.0.1</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login Lokal</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Contoh: 192.168.2.99,1435 atau localhost,1433"
+                  value={batchCredData.ServerLokal}
+                  onChange={(e) => setBatchCredData(prev => ({ ...prev, ServerLokal: e.target.value }))}
+                />
+              </div>
+
+              {/* 2. User Login & Password Lokal (2 Kolom Berdampingan) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>User Login</label>
                   <input
                     type="text"
                     className="form-input"
@@ -2508,19 +2633,20 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
                     onChange={(e) => setBatchCredData(prev => ({ ...prev, UserLokal: e.target.value }))}
                   />
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru Lokal</label>
-                  <div style={{ position: 'relative' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Password Baru</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
                       type={revealedBatchPasswords.Lokal ? 'text' : 'password'}
                       className="form-input"
+                      style={{ paddingRight: '36px', width: '100%' }}
                       placeholder="Biarkan kosong jika tidak diubah"
                       value={batchCredData.PasswordLokal}
                       onChange={(e) => setBatchCredData(prev => ({ ...prev, PasswordLokal: e.target.value }))}
                     />
                     <button
                       type="button"
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                      style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                       onClick={() => setRevealedBatchPasswords(prev => ({ ...prev, Lokal: !prev.Lokal }))}
                     >
                       {revealedBatchPasswords.Lokal ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -2530,6 +2656,7 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               </div>
             </div>
           </div>
+
 
           {/* Modal Action Buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
@@ -2542,15 +2669,16 @@ export default function NodeManager({ configs, onRefreshConfigs }) {
               Batal
             </button>
             <button
-              type="submit"
+              type="button"
               className="btn btn-primary"
+              onClick={handleSaveBatchCredentials}
               disabled={isSavingBatchCred}
             >
               <KeyRound size={15} />
               <span>{isSavingBatchCred ? 'Menerapkan Pembaruan...' : batchCredTargetIds.length > 0 ? `Terapkan Pembaruan Kredensial (${batchCredTargetIds.length} Node)` : 'Terapkan Pembaruan Kredensial'}</span>
             </button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* Subnet Scanner Modal */}
