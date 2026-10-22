@@ -10,6 +10,7 @@ import {
   PanelLeftOpen 
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import logoEmblem from '../assets/logo-emblem.png';
 
 export default function Sidebar({ 
   systemHealth,
@@ -37,20 +38,85 @@ export default function Sidebar({
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Brand Header */}
-      <div className="brand" style={{ padding: isCollapsed ? '16px 12px' : '16px 18px', justifyContent: isCollapsed ? 'center' : 'space-between' }}>
-        <div className="brand-left" style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', width: isCollapsed ? '100%' : 'auto' }}>
+      <div 
+        className="brand" 
+        style={{ 
+          padding: isCollapsed ? '16px 8px' : '16px 16px', 
+          justifyContent: isCollapsed ? 'center' : 'space-between',
+          minHeight: '68px'
+        }}
+      >
+        <div 
+          className="brand-left" 
+          style={{ 
+            justifyContent: isCollapsed ? 'center' : 'flex-start', 
+            width: isCollapsed ? '100%' : 'auto',
+            gap: '11px',
+            alignItems: 'center'
+          }}
+        >
+          {/* Logo Emblem (Both Collapsed & Expanded) */}
           <div 
-            className="brand-icon" 
-            title={isCollapsed ? "Klik untuk membuka sidebar" : "AgroSync Hub v1.0"}
+            className="brand-emblem-wrap" 
+            title={isCollapsed ? "Klik untuk memperluas sidebar" : "AgroFarm - AgroSync Hub"}
             onClick={isCollapsed ? onToggleCollapse : undefined}
-            style={{ cursor: isCollapsed ? 'pointer' : 'default' }}
+            style={{ 
+              cursor: isCollapsed ? 'pointer' : 'default',
+              width: isCollapsed ? '38px' : '36px',
+              height: isCollapsed ? '38px' : '36px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(234, 179, 8, 0.35)',
+              background: '#09090b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.18s ease, box-shadow 0.18s ease'
+            }}
           >
-            <RefreshCw size={18} />
+            <img 
+              src={logoEmblem} 
+              alt="AgroFarm Emblem" 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'contain',
+                display: 'block' 
+              }} 
+            />
           </div>
+
           {!isCollapsed && (
-            <div className="brand-text">
-              <h1>AgroSync Hub</h1>
-              <p>Enterprise Sync v1.0</p>
+            <div className="brand-text" style={{ minWidth: 0 }}>
+              <h1 style={{ 
+                fontSize: '1rem', 
+                fontWeight: 800, 
+                letterSpacing: '-0.02em', 
+                lineHeight: 1.2,
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '4px',
+                margin: 0
+              }}>
+                <span style={{ color: '#10b981' }}>Agro</span>
+                <span style={{ color: 'var(--text-primary)' }}>Sync Hub</span>
+              </h1>
+              <p style={{ 
+                fontSize: '0.66rem', 
+                color: 'var(--text-muted)', 
+                letterSpacing: '0.04em', 
+                textTransform: 'uppercase', 
+                fontWeight: 700,
+                margin: '2px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span>AGROFARM</span>
+                <span style={{ opacity: 0.4 }}>•</span>
+                <span>v1.0</span>
+              </p>
             </div>
           )}
         </div>
